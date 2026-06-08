@@ -6,6 +6,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from .db import Base, engine, get_db
+from .migrations import run_lightweight_migrations
 from .models import (
     NormalizedProduct,
     ProductAlias,
@@ -16,13 +17,16 @@ from .models import (
 from .schemas import (
     CompareResult,
     NormalizedProductRead,
+    ParsedReceiptRead,
     ReceiptRead,
+    ReceiptUploadResponse,
     SearchResult,
     StorePriceSummary,
     StoreRead,
 )
 from .services.ocr import extract_text_from_image
 from .services.parser import parse_receipt_text
+from .services.storage import save_upload
 
 
 app = FastAPI(title="Grocery Receipt Price Tracker API")
@@ -39,6 +43,7 @@ app.add_middleware(
 @app.on_event("startup")
 def startup() -> None:
     Base.metadata.create_all(bind=engine)
+    run_lightweight_migrations(engine)
 
 
 @app.get("/health")
@@ -62,44 +67,60 @@ def list_products(db: Session = Depends(get_db)) -> list[NormalizedProduct]:
     )
 
 
-@app.post("/receipts/upload", response_model=ReceiptRead)
+@app.post("/receipts/upload", response_model=ReceiptUploadResponse)
 async def upload_receipt(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-) -> Receipt:
+):
     if file.content_type and not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Please upload an image file.")
 
     image_bytes = await file.read()
+    saved_path = save_upload(file, image_bytes)
     raw_text = extract_text_from_image(image_bytes)
     parsed = parse_receipt_text(raw_text)
-    store = get_or_create_store(db, parsed.store_name)
+    store = get_or_create_store(
+        db,
+        parsed.store_name,
+        location_text=parsed.store_location_text,
+        phone=parsed.store_phone,
+    )
 
     receipt = Receipt(
         store_id=store.id,
         purchased_at=parsed.purchased_at,
         original_filename=file.filename,
+        image_path=str(saved_path),
         raw_text=raw_text,
     )
     db.add(receipt)
     db.flush()
 
-    receipt.items = [
-        ReceiptItem(
-            receipt_id=receipt.id,
-            store_id=store.id,
-            normalized_product_id=get_or_create_product_for_raw_item(db, item.name).id,
-            raw_item_name=item.name,
-            price=item.price,
-            quantity=parse_quantity(item.quantity)[0],
-            unit=parse_quantity(item.quantity)[1],
-            purchased_at=parsed.purchased_at,
+    receipt_items = []
+    for item in parsed.items:
+        quantity, unit = parse_quantity(item.quantity)
+        receipt_items.append(
+            ReceiptItem(
+                receipt_id=receipt.id,
+                store_id=store.id,
+                normalized_product_id=get_or_create_product_for_raw_item(db, item.name).id,
+                raw_item_name=item.name,
+                price=item.price,
+                quantity=quantity,
+                unit=unit,
+                purchased_at=parsed.purchased_at,
+            )
         )
-        for item in parsed.items
-    ]
+    receipt.items = receipt_items
 
     db.commit()
-    return load_receipt(db, receipt.id)
+    loaded_receipt = load_receipt(db, receipt.id)
+    return ReceiptUploadResponse(
+        receipt=loaded_receipt,
+        image_path=str(saved_path),
+        extracted_text=raw_text,
+        parsed=to_parsed_receipt_response(parsed),
+    )
 
 
 @app.get("/receipts", response_model=list[ReceiptRead])
@@ -209,13 +230,22 @@ def load_receipt(db: Session, receipt_id: int) -> Receipt:
     return receipt
 
 
-def get_or_create_store(db: Session, name: str) -> Store:
+def get_or_create_store(
+    db: Session,
+    name: str,
+    location_text: str | None = None,
+    phone: str | None = None,
+) -> Store:
     store_name = " ".join(name.split()).strip() or "Unknown Store"
     store = db.scalar(select(Store).where(func.lower(Store.name) == store_name.lower()))
     if store:
+        if location_text and not store.location_text:
+            store.location_text = location_text
+        if phone and not store.phone:
+            store.phone = phone
         return store
 
-    store = Store(name=store_name)
+    store = Store(name=store_name, location_text=location_text, phone=phone)
     db.add(store)
     db.flush()
     return store
@@ -292,4 +322,22 @@ def to_search_result(item: ReceiptItem, store: Store) -> SearchResult:
         store_name=store.name,
         purchased_at=item.purchased_at,
         receipt_id=item.receipt_id,
+    )
+
+
+def to_parsed_receipt_response(parsed) -> ParsedReceiptRead:
+    return ParsedReceiptRead(
+        store_name=parsed.store_name,
+        store_location_text=parsed.store_location_text,
+        store_phone=parsed.store_phone,
+        purchased_at=parsed.purchased_at,
+        items=[
+            {
+                "line": item.line,
+                "name": item.name,
+                "quantity": item.quantity,
+                "price": item.price,
+            }
+            for item in parsed.items
+        ],
     )

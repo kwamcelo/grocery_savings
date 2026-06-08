@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .db import Base, SessionLocal, engine
+from .migrations import run_lightweight_migrations
 from .models import NormalizedProduct, ProductAlias, Receipt, ReceiptItem, Store
 
 
@@ -40,6 +41,8 @@ PRODUCTS = [
 RECEIPTS = [
     {
         "store": "Fresh Market",
+        "location": "123 Main St, Vancouver BC V6B 1A1",
+        "phone": "604-555-0101",
         "purchased_at": date(2026, 6, 1),
         "raw_text": "Fresh Market\n2026-06-01\nMANGO MX 2.99\nMilk 2L 5.49\nEggs dozen 4.79",
         "items": [
@@ -50,6 +53,8 @@ RECEIPTS = [
     },
     {
         "store": "Save-On Foods",
+        "location": "456 Broadway W, Vancouver BC V5Y 1R3",
+        "phone": "604-555-0102",
         "purchased_at": date(2026, 6, 3),
         "raw_text": "Save-On Foods\n2026-06-03\nMEX MANGO 3.49\nBANANAS 1.24\nBABY SPINACH 3.99",
         "items": [
@@ -60,6 +65,8 @@ RECEIPTS = [
     },
     {
         "store": "No Frills",
+        "location": "789 Kingsway, Vancouver BC V5V 3C2",
+        "phone": "604-555-0103",
         "purchased_at": date(2026, 6, 5),
         "raw_text": "No Frills\n2026-06-05\nMANGOS 2.49\nBNNA 0.89\n2 PERCENT MILK 4.99",
         "items": [
@@ -78,6 +85,7 @@ def reset_database() -> None:
 
 def create_tables() -> None:
     Base.metadata.create_all(bind=engine)
+    run_lightweight_migrations(engine)
 
 
 def seed_database() -> None:
@@ -121,7 +129,12 @@ def seed_receipts(
     product_by_name: dict[str, NormalizedProduct],
 ) -> None:
     for receipt_data in RECEIPTS:
-        store = get_or_create_store(db, receipt_data["store"])
+        store = get_or_create_store(
+            db,
+            receipt_data["store"],
+            receipt_data["location"],
+            receipt_data["phone"],
+        )
         existing = db.scalar(
             select(Receipt).where(
                 Receipt.store_id == store.id,
@@ -157,12 +170,21 @@ def seed_receipts(
             )
 
 
-def get_or_create_store(db: Session, name: str) -> Store:
+def get_or_create_store(
+    db: Session,
+    name: str,
+    location_text: str | None = None,
+    phone: str | None = None,
+) -> Store:
     store = db.scalar(select(Store).where(func.lower(Store.name) == name.lower()))
     if store:
+        if location_text and not store.location_text:
+            store.location_text = location_text
+        if phone and not store.phone:
+            store.phone = phone
         return store
 
-    store = Store(name=name)
+    store = Store(name=name, location_text=location_text, phone=phone)
     db.add(store)
     db.flush()
     return store

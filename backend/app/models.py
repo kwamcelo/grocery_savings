@@ -11,6 +11,8 @@ class Store(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    location_text: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(80), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     receipts: Mapped[list["Receipt"]] = relationship("Receipt", back_populates="store")
@@ -64,6 +66,7 @@ class Receipt(Base):
     store_id: Mapped[int] = mapped_column(ForeignKey("stores.id"), index=True)
     purchased_at: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
     original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     raw_text: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

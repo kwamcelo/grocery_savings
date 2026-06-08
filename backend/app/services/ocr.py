@@ -3,6 +3,8 @@ from io import BytesIO
 
 
 PLACEHOLDER_RECEIPT_TEXT = """Fresh Market
+123 Main St Vancouver BC V6B 1A1
+604-555-0101
 2026-06-01
 Bananas 1.24
 Milk 2L 5.49

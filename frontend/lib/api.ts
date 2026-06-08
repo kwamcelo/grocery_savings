@@ -20,9 +20,32 @@ export type Receipt = {
   store_name: string;
   purchased_at: string | null;
   original_filename: string | null;
+  image_path: string | null;
   raw_text: string;
   created_at: string;
   items: ReceiptItem[];
+};
+
+export type ParsedReceiptItem = {
+  line: string;
+  name: string;
+  quantity: string | null;
+  price: number;
+};
+
+export type ParsedReceipt = {
+  store_name: string;
+  store_location_text: string | null;
+  store_phone: string | null;
+  purchased_at: string | null;
+  items: ParsedReceiptItem[];
+};
+
+export type ReceiptUploadResponse = {
+  receipt: Receipt;
+  image_path: string;
+  extracted_text: string;
+  parsed: ParsedReceipt;
 };
 
 export type SearchResult = {
@@ -53,7 +76,7 @@ export type CompareResult = {
   by_store: StorePriceSummary[];
 };
 
-export async function uploadReceipt(file: File): Promise<Receipt> {
+export async function uploadReceipt(file: File): Promise<ReceiptUploadResponse> {
   const body = new FormData();
   body.append("file", file);
 

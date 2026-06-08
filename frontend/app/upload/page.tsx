@@ -2,11 +2,11 @@
 
 import { FormEvent, useState } from "react";
 import { ReceiptText, Upload } from "lucide-react";
-import { Receipt, formatMoney, uploadReceipt } from "@/lib/api";
+import { ReceiptUploadResponse, formatMoney, uploadReceipt } from "@/lib/api";
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
-  const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [uploadResult, setUploadResult] = useState<ReceiptUploadResponse | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,10 +16,10 @@ export default function UploadPage() {
 
     setIsUploading(true);
     setError(null);
-    setReceipt(null);
+    setUploadResult(null);
 
     try {
-      setReceipt(await uploadReceipt(file));
+      setUploadResult(await uploadReceipt(file));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -54,12 +54,19 @@ export default function UploadPage() {
 
       {error ? <p className="error">{error}</p> : null}
 
-      {receipt ? (
+      {uploadResult ? (
         <section className="panel">
           <h2>
-            <ReceiptText size={20} aria-hidden="true" /> {receipt.store_name}
+            <ReceiptText size={20} aria-hidden="true" /> {uploadResult.parsed.store_name}
           </h2>
-          <p className="muted">{receipt.purchased_at ?? "No purchase date parsed"}</p>
+          <p className="muted">
+            {uploadResult.parsed.purchased_at ?? "No purchase date parsed"}
+            {uploadResult.parsed.store_location_text
+              ? ` / ${uploadResult.parsed.store_location_text}`
+              : ""}
+            {uploadResult.parsed.store_phone ? ` / ${uploadResult.parsed.store_phone}` : ""}
+          </p>
+          <p className="muted">Saved image: {uploadResult.image_path}</p>
           <div className="table-wrap">
             <table>
               <thead>
@@ -70,7 +77,7 @@ export default function UploadPage() {
                 </tr>
               </thead>
               <tbody>
-                {receipt.items.map((item) => (
+                {uploadResult.receipt.items.map((item) => (
                   <tr key={item.id}>
                     <td>{item.name}</td>
                     <td>{formatQuantity(item.quantity, item.unit)}</td>
@@ -80,6 +87,8 @@ export default function UploadPage() {
               </tbody>
             </table>
           </div>
+          <h3>Extracted text</h3>
+          <pre className="ocr-text">{uploadResult.extracted_text}</pre>
         </section>
       ) : null}
     </div>

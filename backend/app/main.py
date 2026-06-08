@@ -1,5 +1,7 @@
 import re
 from datetime import date
+from difflib import SequenceMatcher
+from typing import NamedTuple
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +19,7 @@ from .models import (
 )
 from .schemas import (
     CompareResult,
+    NormalizationSuggestionRead,
     NormalizedProductRead,
     ParsedReceiptRead,
     ProductPriceHistory,
@@ -36,6 +39,15 @@ from .services.storage import save_upload
 
 
 app = FastAPI(title="Grocery Receipt Price Tracker API")
+AUTO_NORMALIZATION_THRESHOLD = 0.94
+REVIEW_NORMALIZATION_THRESHOLD = 0.58
+
+
+class ProductMatch(NamedTuple):
+    product: NormalizedProduct
+    score: float
+    matched_on: str
+    auto_match: bool
 
 app.add_middleware(
     CORSMiddleware,
@@ -145,6 +157,7 @@ def get_product_price_history(
 @app.post("/receipts/upload", response_model=ReceiptPreviewResponse)
 async def upload_receipt(
     file: UploadFile = File(...),
+    db: Session = Depends(get_db),
 ):
     if file.content_type and not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Please upload an image file.")
@@ -158,7 +171,7 @@ async def upload_receipt(
         image_path=str(saved_path),
         original_filename=file.filename,
         extracted_text=raw_text,
-        parsed=to_parsed_receipt_response(parsed),
+        parsed=to_parsed_receipt_response(parsed, db),
     )
 
 
@@ -193,11 +206,12 @@ def save_receipt(
             continue
         quantity, inferred_unit = parse_quantity(item.quantity)
         unit = item.unit.strip().lower() if item.unit else inferred_unit
+        normalized_product = resolve_normalized_product_for_item(db, item)
         receipt_items.append(
             ReceiptItem(
                 receipt_id=receipt.id,
                 store_id=store.id,
-                normalized_product_id=get_or_create_product_for_raw_item(db, item_name).id,
+                normalized_product_id=normalized_product.id,
                 raw_item_name=item_name,
                 price=item.price,
                 quantity=quantity,
@@ -367,6 +381,103 @@ def get_or_create_product_for_raw_item(db: Session, raw_item_name: str) -> Norma
     return product
 
 
+def resolve_normalized_product_for_item(db: Session, item) -> NormalizedProduct:
+    item_name = item.name.strip()
+
+    if item.normalized_product_id and not item.reject_normalization_suggestion:
+        product = db.scalar(
+            select(NormalizedProduct).where(
+                NormalizedProduct.id == item.normalized_product_id
+            )
+        )
+        if product:
+            add_alias_if_missing(db, product.id, item_name)
+            return product
+
+    if not item.reject_normalization_suggestion:
+        match = find_product_match(db, item_name)
+        if match and match.auto_match:
+            add_alias_if_missing(db, match.product.id, item_name)
+            return match.product
+
+    return get_or_create_unmatched_product(db, item_name)
+
+
+def get_or_create_unmatched_product(db: Session, raw_item_name: str) -> NormalizedProduct:
+    product_name = normalize_product_name(raw_item_name)
+    product = db.scalar(
+        select(NormalizedProduct).where(func.lower(NormalizedProduct.name) == product_name.lower())
+    )
+    if not product:
+        product = NormalizedProduct(name=product_name)
+        db.add(product)
+        db.flush()
+
+    add_alias_if_missing(db, product.id, raw_item_name)
+    return product
+
+
+def add_alias_if_missing(db: Session, product_id: int, raw_item_name: str) -> None:
+    alias = canonical_alias(raw_item_name)
+    if not alias:
+        return
+    existing = db.scalar(select(ProductAlias).where(ProductAlias.alias == alias))
+    if not existing:
+        db.add(ProductAlias(normalized_product_id=product_id, alias=alias))
+        db.flush()
+
+
+def find_product_match(db: Session, raw_item_name: str) -> ProductMatch | None:
+    raw_alias = canonical_alias(raw_item_name)
+    if not raw_alias:
+        return None
+
+    products = list(
+        db.scalars(
+            select(NormalizedProduct)
+            .options(selectinload(NormalizedProduct.aliases))
+            .order_by(NormalizedProduct.name.asc())
+        )
+    )
+    best: ProductMatch | None = None
+    for product in products:
+        candidate_strings = [product.name, *[alias.alias for alias in product.aliases]]
+        for candidate in candidate_strings:
+            score = normalization_score(raw_alias, candidate)
+            if not best or score > best.score:
+                best = ProductMatch(
+                    product=product,
+                    score=score,
+                    matched_on=candidate,
+                    auto_match=score >= AUTO_NORMALIZATION_THRESHOLD,
+                )
+
+    if best and best.score >= REVIEW_NORMALIZATION_THRESHOLD:
+        return best
+    return None
+
+
+def normalization_score(raw_alias: str, candidate: str) -> float:
+    candidate_alias = canonical_alias(candidate)
+    if not candidate_alias:
+        return 0
+    if raw_alias == candidate_alias:
+        return 1
+
+    raw_tokens = set(query_terms(raw_alias))
+    candidate_tokens = set(query_terms(candidate_alias))
+    overlap = len(raw_tokens & candidate_tokens) / max(len(raw_tokens | candidate_tokens), 1)
+    sequence = SequenceMatcher(None, raw_alias, candidate_alias).ratio()
+    abbreviation_bonus = 0.0
+    if raw_tokens and candidate_tokens:
+        candidate_initials = "".join(token[0] for token in candidate_tokens if token)
+        raw_initials = "".join(token[0] for token in raw_tokens if token)
+        if raw_initials and raw_initials in candidate_initials:
+            abbreviation_bonus = 0.08
+
+    return min(1.0, max(sequence, overlap) + abbreviation_bonus)
+
+
 def matching_product_ids(db: Session, query: str) -> list[int]:
     canonical = canonical_alias(query)
     return list(
@@ -491,7 +602,7 @@ def singularize(term: str) -> str:
     return term
 
 
-def to_parsed_receipt_response(parsed) -> ParsedReceiptRead:
+def to_parsed_receipt_response(parsed, db: Session | None = None) -> ParsedReceiptRead:
     return ParsedReceiptRead(
         store_name=parsed.store_name,
         store_location_text=parsed.store_location_text,
@@ -503,7 +614,22 @@ def to_parsed_receipt_response(parsed) -> ParsedReceiptRead:
                 "name": item.name,
                 "quantity": item.quantity,
                 "price": item.price,
+                "normalization_suggestion": to_normalization_suggestion(
+                    find_product_match(db, item.name) if db else None
+                ),
             }
             for item in parsed.items
         ],
+    )
+
+
+def to_normalization_suggestion(match: ProductMatch | None) -> NormalizationSuggestionRead | None:
+    if not match:
+        return None
+    return NormalizationSuggestionRead(
+        product_id=match.product.id,
+        product_name=match.product.name,
+        score=round(match.score, 2),
+        matched_on=match.matched_on,
+        auto_match=match.auto_match,
     )

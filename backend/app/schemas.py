@@ -62,11 +62,20 @@ class ReceiptRead(BaseModel):
     items: list[ReceiptItemRead] = []
 
 
+class NormalizationSuggestionRead(BaseModel):
+    product_id: int
+    product_name: str
+    score: float
+    matched_on: str
+    auto_match: bool
+
+
 class ParsedReceiptItemRead(BaseModel):
     line: str
     name: str
     quantity: str | None
     price: float
+    normalization_suggestion: NormalizationSuggestionRead | None = None
 
 
 class ParsedReceiptRead(BaseModel):
@@ -90,6 +99,8 @@ class CorrectedReceiptItem(BaseModel):
     quantity: str | None = None
     unit: str | None = None
     source_line: str | None = None
+    normalized_product_id: int | None = None
+    reject_normalization_suggestion: bool = False
 
 
 class SaveReceiptRequest(BaseModel):

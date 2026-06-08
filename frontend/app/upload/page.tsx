@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { Plus, ReceiptText, Save, Trash2, Upload } from "lucide-react";
 import {
+  NormalizationSuggestion,
   Receipt,
   ReceiptPreviewResponse,
   formatMoney,
@@ -16,6 +17,9 @@ type ReviewItem = {
   unit: string;
   price: string;
   source_line: string | null;
+  suggestion: NormalizationSuggestion | null;
+  confirmed_product_id: number | null;
+  rejected_suggestion: boolean;
 };
 
 export default function UploadPage() {
@@ -54,6 +58,11 @@ export default function UploadPage() {
           unit: "",
           price: String(item.price),
           source_line: item.line,
+          suggestion: item.normalization_suggestion,
+          confirmed_product_id: item.normalization_suggestion?.auto_match
+            ? item.normalization_suggestion.product_id
+            : null,
+          rejected_suggestion: false,
         })),
       );
     } catch (err) {
@@ -86,6 +95,8 @@ export default function UploadPage() {
             unit: item.unit.trim() || null,
             price: Number(item.price),
             source_line: item.source_line,
+            normalized_product_id: item.confirmed_product_id,
+            reject_normalization_suggestion: item.rejected_suggestion,
           })),
       });
       setSavedReceipt(receipt);
@@ -109,7 +120,16 @@ export default function UploadPage() {
   function addItem() {
     setItems((current) => [
       ...current,
-      { name: "", quantity: "", unit: "", price: "", source_line: null },
+      {
+        name: "",
+        quantity: "",
+        unit: "",
+        price: "",
+        source_line: null,
+        suggestion: null,
+        confirmed_product_id: null,
+        rejected_suggestion: false,
+      },
     ]);
   }
 
@@ -188,6 +208,7 @@ export default function UploadPage() {
                   <th>Item name</th>
                   <th>Quantity</th>
                   <th>Unit</th>
+                  <th>Suggested product</th>
                   <th className="numeric">Price</th>
                   <th aria-label="Actions" />
                 </tr>
@@ -218,6 +239,7 @@ export default function UploadPage() {
                         onChange={(event) => updateItem(index, { unit: event.target.value })}
                       />
                     </td>
+                    <td>{renderSuggestion(item, index, updateItem)}</td>
                     <td>
                       <input
                         className="table-input numeric"
@@ -267,6 +289,75 @@ export default function UploadPage() {
           <pre className="ocr-text">{preview.extracted_text}</pre>
         </section>
       ) : null}
+    </div>
+  );
+}
+
+function renderSuggestion(
+  item: ReviewItem,
+  index: number,
+  updateItem: (index: number, patch: Partial<ReviewItem>) => void,
+) {
+  if (!item.suggestion) {
+    return <span className="muted">No suggestion</span>;
+  }
+
+  if (item.rejected_suggestion) {
+    return (
+      <div className="suggestion-cell">
+        <span className="muted">Rejected</span>
+        <button
+          className="secondary mini-button"
+          type="button"
+          onClick={() =>
+            updateItem(index, {
+              rejected_suggestion: false,
+              confirmed_product_id: null,
+            })
+          }
+        >
+          Undo
+        </button>
+      </div>
+    );
+  }
+
+  const confirmed = item.confirmed_product_id === item.suggestion.product_id;
+
+  return (
+    <div className={confirmed ? "suggestion-cell confirmed" : "suggestion-cell"}>
+      <span>
+        <strong>{item.suggestion.product_name}</strong>
+        <small>
+          {Math.round(item.suggestion.score * 100)}% match on "{item.suggestion.matched_on}"
+        </small>
+      </span>
+      <span className="suggestion-actions">
+        <button
+          className={confirmed ? "mini-button" : "secondary mini-button"}
+          type="button"
+          onClick={() =>
+            updateItem(index, {
+              confirmed_product_id: item.suggestion?.product_id ?? null,
+              rejected_suggestion: false,
+            })
+          }
+        >
+          {confirmed ? "Confirmed" : "Confirm"}
+        </button>
+        <button
+          className="secondary mini-button"
+          type="button"
+          onClick={() =>
+            updateItem(index, {
+              confirmed_product_id: null,
+              rejected_suggestion: true,
+            })
+          }
+        >
+          Reject
+        </button>
+      </span>
     </div>
   );
 }

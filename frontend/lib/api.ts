@@ -31,6 +31,15 @@ export type ParsedReceiptItem = {
   name: string;
   quantity: string | null;
   price: number;
+  normalization_suggestion: NormalizationSuggestion | null;
+};
+
+export type NormalizationSuggestion = {
+  product_id: number;
+  product_name: string;
+  score: number;
+  matched_on: string;
+  auto_match: boolean;
 };
 
 export type ParsedReceipt = {
@@ -54,6 +63,8 @@ export type CorrectedReceiptItem = {
   quantity: string | null;
   unit: string | null;
   source_line: string | null;
+  normalized_product_id: number | null;
+  reject_normalization_suggestion: boolean;
 };
 
 export type SaveReceiptRequest = {

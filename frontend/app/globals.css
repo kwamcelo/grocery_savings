@@ -346,6 +346,30 @@ tr:last-child td {
   font-weight: 700;
 }
 
+.comparison-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid #e0b99f;
+  border-radius: var(--radius);
+  background: #fff8f1;
+  color: var(--warning);
+}
+
+.comparison-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--warning);
+  font-size: 12px;
+  white-space: normal;
+}
+
+.unreliable-price {
+  color: var(--warning);
+  font-weight: 700;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

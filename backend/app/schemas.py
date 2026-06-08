@@ -122,6 +122,12 @@ class SearchResult(BaseModel):
     quantity: float | None
     unit: str | None
     price: float
+    unit_price: float | None = None
+    unit_price_label: str | None = None
+    comparison_price: float | None = None
+    comparison_basis: str = "total"
+    comparison_reliable: bool = False
+    comparison_warning: str | None = None
     store_id: int
     store_name: str
     purchased_at: date | None
@@ -170,6 +176,12 @@ class StorePriceSummary(BaseModel):
     highest_price: float
     average_price: float
     observations: int
+    lowest_unit_price: float | None = None
+    lowest_unit_price_label: str | None = None
+    comparison_price: float
+    comparison_basis: str
+    comparison_reliable: bool
+    comparison_warning: str | None = None
 
 
 class CompareResult(BaseModel):

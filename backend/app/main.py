@@ -284,41 +284,22 @@ def compare_items(name: str, db: Session = Depends(get_db)) -> CompareResult:
             ReceiptItem.normalized_product_id == NormalizedProduct.id,
         )
         .where(or_(*filters))
-        .order_by(ReceiptItem.price.asc())
     ).all()
 
-    summaries = db.execute(
-        select(
-            Store.name,
-            func.min(ReceiptItem.price),
-            func.max(ReceiptItem.price),
-            func.avg(ReceiptItem.price),
-            func.count(ReceiptItem.id),
+    search_results = [to_search_result(item, store) for item, store in rows]
+    search_results.sort(
+        key=lambda result: (
+            result.comparison_price is None,
+            result.comparison_price or result.price,
+            result.store_name,
         )
-        .select_from(ReceiptItem)
-        .join(Store, ReceiptItem.store_id == Store.id)
-        .outerjoin(
-            NormalizedProduct,
-            ReceiptItem.normalized_product_id == NormalizedProduct.id,
-        )
-        .where(or_(*filters))
-        .group_by(Store.name)
-        .order_by(func.avg(ReceiptItem.price).asc())
-    ).all()
+    )
+    summaries = build_store_price_summaries(rows)
 
     return CompareResult(
         query=name,
-        matches=[to_search_result(item, store) for item, store in rows],
-        by_store=[
-            StorePriceSummary(
-                store_name=store,
-                lowest_price=round(low, 2),
-                highest_price=round(high, 2),
-                average_price=round(avg, 2),
-                observations=count,
-            )
-            for store, low, high, avg, count in summaries
-        ],
+        matches=search_results,
+        by_store=summaries,
     )
 
 
@@ -512,7 +493,163 @@ def canonical_alias(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
 
 
+def build_store_price_summaries(
+    rows: list[tuple[ReceiptItem, Store]],
+) -> list[StorePriceSummary]:
+    grouped: dict[int, tuple[Store, list[ReceiptItem]]] = {}
+    for item, store in rows:
+        if store.id not in grouped:
+            grouped[store.id] = (store, [])
+        grouped[store.id][1].append(item)
+
+    summaries = []
+    for store, items in grouped.values():
+        unit_comparisons = [
+            comparison
+            for item in items
+            if (comparison := calculate_unit_comparison(item)).comparison_price is not None
+        ]
+        prices = [item.price for item in items]
+        if unit_comparisons:
+            lowest_unit = min(unit_comparisons, key=lambda comparison: comparison.comparison_price or 0)
+            summaries.append(
+                StorePriceSummary(
+                    store_name=store.name,
+                    lowest_price=round(min(prices), 2),
+                    highest_price=round(max(prices), 2),
+                    average_price=round(sum(prices) / len(prices), 2),
+                    observations=len(items),
+                    lowest_unit_price=lowest_unit.unit_price,
+                    lowest_unit_price_label=lowest_unit.unit_price_label,
+                    comparison_price=lowest_unit.comparison_price or min(prices),
+                    comparison_basis=lowest_unit.comparison_basis,
+                    comparison_reliable=True,
+                )
+            )
+        else:
+            lowest_total = min(prices)
+            summaries.append(
+                StorePriceSummary(
+                    store_name=store.name,
+                    lowest_price=round(lowest_total, 2),
+                    highest_price=round(max(prices), 2),
+                    average_price=round(sum(prices) / len(prices), 2),
+                    observations=len(items),
+                    comparison_price=round(lowest_total, 2),
+                    comparison_basis="total",
+                    comparison_reliable=False,
+                    comparison_warning="Missing quantity or unit; comparing total item price.",
+                )
+            )
+
+    summaries.sort(key=lambda summary: (summary.comparison_price, summary.store_name))
+    return summaries
+
+
+class UnitComparison:
+    def __init__(
+        self,
+        unit_price: float | None,
+        unit_price_label: str | None,
+        comparison_price: float | None,
+        comparison_basis: str,
+        reliable: bool,
+        warning: str | None,
+    ) -> None:
+        self.unit_price = unit_price
+        self.unit_price_label = unit_price_label
+        self.comparison_price = comparison_price
+        self.comparison_basis = comparison_basis
+        self.reliable = reliable
+        self.warning = warning
+
+
+def calculate_unit_comparison(item: ReceiptItem) -> UnitComparison:
+    if not item.quantity or item.quantity <= 0:
+        return UnitComparison(
+            None,
+            None,
+            None,
+            "total",
+            False,
+            "Missing quantity; comparing total item price.",
+        )
+    if not item.unit:
+        return UnitComparison(
+            None,
+            None,
+            None,
+            "total",
+            False,
+            "Missing unit; comparing total item price.",
+        )
+
+    normalized = normalize_unit(item.unit)
+    if not normalized:
+        return UnitComparison(
+            None,
+            None,
+            None,
+            "total",
+            False,
+            f"Unsupported unit '{item.unit}'; comparing total item price.",
+        )
+
+    quantity, unit, label = normalized
+    base_quantity = item.quantity * quantity
+    if base_quantity <= 0:
+        return UnitComparison(
+            None,
+            None,
+            None,
+            "total",
+            False,
+            "Invalid quantity; comparing total item price.",
+        )
+
+    unit_price = round(item.price / base_quantity, 2)
+    return UnitComparison(unit_price, label, unit_price, f"unit:{unit}", True, None)
+
+
+def normalize_unit(unit: str) -> tuple[float, str, str] | None:
+    normalized = unit.strip().lower()
+    normalized = normalized.rstrip(".")
+    unit_map = {
+        "kg": (1.0, "kg", "per kg"),
+        "kilogram": (1.0, "kg", "per kg"),
+        "kilograms": (1.0, "kg", "per kg"),
+        "g": (0.001, "kg", "per kg"),
+        "gram": (0.001, "kg", "per kg"),
+        "grams": (0.001, "kg", "per kg"),
+        "100g": (0.1, "kg", "per kg"),
+        "lb": (0.453592, "kg", "per kg"),
+        "lbs": (0.453592, "kg", "per kg"),
+        "pound": (0.453592, "kg", "per kg"),
+        "pounds": (0.453592, "kg", "per kg"),
+        "oz": (0.0283495, "kg", "per kg"),
+        "ounce": (0.0283495, "kg", "per kg"),
+        "ounces": (0.0283495, "kg", "per kg"),
+        "l": (1.0, "l", "per L"),
+        "liter": (1.0, "l", "per L"),
+        "liters": (1.0, "l", "per L"),
+        "litre": (1.0, "l", "per L"),
+        "litres": (1.0, "l", "per L"),
+        "ml": (0.001, "l", "per L"),
+        "milliliter": (0.001, "l", "per L"),
+        "milliliters": (0.001, "l", "per L"),
+        "ct": (1.0, "item", "per item"),
+        "count": (1.0, "item", "per item"),
+        "item": (1.0, "item", "per item"),
+        "items": (1.0, "item", "per item"),
+        "each": (1.0, "item", "per item"),
+        "ea": (1.0, "item", "per item"),
+    }
+    return unit_map.get(normalized)
+
+
 def to_search_result(item: ReceiptItem, store: Store) -> SearchResult:
+    comparison = calculate_unit_comparison(item)
+    comparison_price = comparison.comparison_price if comparison.comparison_price is not None else item.price
     return SearchResult(
         item_id=item.id,
         raw_item_name=item.raw_item_name,
@@ -521,6 +658,12 @@ def to_search_result(item: ReceiptItem, store: Store) -> SearchResult:
         quantity=item.quantity,
         unit=item.unit,
         price=item.price,
+        unit_price=comparison.unit_price,
+        unit_price_label=comparison.unit_price_label,
+        comparison_price=round(comparison_price, 2),
+        comparison_basis=comparison.comparison_basis,
+        comparison_reliable=comparison.reliable,
+        comparison_warning=comparison.warning,
         store_id=store.id,
         store_name=store.name,
         purchased_at=item.purchased_at,

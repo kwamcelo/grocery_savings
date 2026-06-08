@@ -86,6 +86,12 @@ export type SearchResult = {
   quantity: number | null;
   unit: string | null;
   price: number;
+  unit_price: number | null;
+  unit_price_label: string | null;
+  comparison_price: number | null;
+  comparison_basis: string;
+  comparison_reliable: boolean;
+  comparison_warning: string | null;
   store_id: number;
   store_name: string;
   purchased_at: string | null;
@@ -98,6 +104,12 @@ export type StorePriceSummary = {
   highest_price: number;
   average_price: number;
   observations: number;
+  lowest_unit_price: number | null;
+  lowest_unit_price_label: string | null;
+  comparison_price: number;
+  comparison_basis: string;
+  comparison_reliable: boolean;
+  comparison_warning: string | null;
 };
 
 export type CompareResult = {

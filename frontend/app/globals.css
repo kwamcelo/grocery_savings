@@ -175,13 +175,46 @@ button:disabled {
 }
 
 .form-row input[type="search"],
-.form-row input[type="text"] {
+.form-row input[type="text"],
+.review-grid input,
+.table-input {
   width: min(440px, 100%);
   min-height: 42px;
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.review-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.review-grid input {
+  width: 100%;
+  color: var(--text);
+  font-weight: 400;
+}
+
+.table-input {
+  width: 100%;
+  min-width: 110px;
+}
+
+.icon-button {
+  width: 38px;
+  min-height: 38px;
+  padding: 0;
 }
 
 .upload-box {
@@ -272,6 +305,15 @@ tr:last-child td {
   color: var(--warning);
 }
 
+.save-status {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -309,7 +351,8 @@ tr:last-child td {
   }
 
   .grid,
-  .summary-grid {
+  .summary-grid,
+  .review-grid {
     grid-template-columns: 1fr;
   }
 

@@ -41,11 +41,30 @@ export type ParsedReceipt = {
   items: ParsedReceiptItem[];
 };
 
-export type ReceiptUploadResponse = {
-  receipt: Receipt;
+export type ReceiptPreviewResponse = {
   image_path: string;
+  original_filename: string | null;
   extracted_text: string;
   parsed: ParsedReceipt;
+};
+
+export type CorrectedReceiptItem = {
+  name: string;
+  price: number;
+  quantity: string | null;
+  unit: string | null;
+  source_line: string | null;
+};
+
+export type SaveReceiptRequest = {
+  store_name: string;
+  store_location_text: string | null;
+  store_phone: string | null;
+  purchased_at: string | null;
+  image_path: string | null;
+  original_filename: string | null;
+  raw_text: string;
+  items: CorrectedReceiptItem[];
 };
 
 export type SearchResult = {
@@ -76,13 +95,27 @@ export type CompareResult = {
   by_store: StorePriceSummary[];
 };
 
-export async function uploadReceipt(file: File): Promise<ReceiptUploadResponse> {
+export async function previewReceipt(file: File): Promise<ReceiptPreviewResponse> {
   const body = new FormData();
   body.append("file", file);
 
   const response = await fetch(`${API_URL}/receipts/upload`, {
     method: "POST",
     body,
+  });
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  return response.json();
+}
+
+export async function saveReceipt(payload: SaveReceiptRequest): Promise<Receipt> {
+  const response = await fetch(`${API_URL}/receipts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {

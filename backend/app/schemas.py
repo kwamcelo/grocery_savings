@@ -77,11 +77,30 @@ class ParsedReceiptRead(BaseModel):
     items: list[ParsedReceiptItemRead]
 
 
-class ReceiptUploadResponse(BaseModel):
-    receipt: ReceiptRead
+class ReceiptPreviewResponse(BaseModel):
     image_path: str
+    original_filename: str | None
     extracted_text: str
     parsed: ParsedReceiptRead
+
+
+class CorrectedReceiptItem(BaseModel):
+    name: str
+    price: float
+    quantity: str | None = None
+    unit: str | None = None
+    source_line: str | None = None
+
+
+class SaveReceiptRequest(BaseModel):
+    store_name: str
+    store_location_text: str | None = None
+    store_phone: str | None = None
+    purchased_at: date | None = None
+    image_path: str | None = None
+    original_filename: str | None = None
+    raw_text: str = ""
+    items: list[CorrectedReceiptItem]
 
 
 class SearchResult(BaseModel):

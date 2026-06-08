@@ -18,8 +18,9 @@ from .schemas import (
     CompareResult,
     NormalizedProductRead,
     ParsedReceiptRead,
+    ReceiptPreviewResponse,
     ReceiptRead,
-    ReceiptUploadResponse,
+    SaveReceiptRequest,
     SearchResult,
     StorePriceSummary,
     StoreRead,
@@ -67,10 +68,9 @@ def list_products(db: Session = Depends(get_db)) -> list[NormalizedProduct]:
     )
 
 
-@app.post("/receipts/upload", response_model=ReceiptUploadResponse)
+@app.post("/receipts/upload", response_model=ReceiptPreviewResponse)
 async def upload_receipt(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db),
 ):
     if file.content_type and not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Please upload an image file.")
@@ -79,48 +79,66 @@ async def upload_receipt(
     saved_path = save_upload(file, image_bytes)
     raw_text = extract_text_from_image(image_bytes)
     parsed = parse_receipt_text(raw_text)
-    store = get_or_create_store(
-        db,
-        parsed.store_name,
-        location_text=parsed.store_location_text,
-        phone=parsed.store_phone,
+
+    return ReceiptPreviewResponse(
+        image_path=str(saved_path),
+        original_filename=file.filename,
+        extracted_text=raw_text,
+        parsed=to_parsed_receipt_response(parsed),
     )
 
+
+@app.post("/receipts", response_model=ReceiptRead)
+def save_receipt(
+    payload: SaveReceiptRequest,
+    db: Session = Depends(get_db),
+) -> Receipt:
+    if not payload.items:
+        raise HTTPException(status_code=400, detail="At least one receipt item is required.")
+
+    store = get_or_create_store(
+        db,
+        payload.store_name,
+        location_text=payload.store_location_text,
+        phone=payload.store_phone,
+    )
     receipt = Receipt(
         store_id=store.id,
-        purchased_at=parsed.purchased_at,
-        original_filename=file.filename,
-        image_path=str(saved_path),
-        raw_text=raw_text,
+        purchased_at=payload.purchased_at,
+        original_filename=payload.original_filename,
+        image_path=payload.image_path,
+        raw_text=payload.raw_text,
     )
     db.add(receipt)
     db.flush()
 
     receipt_items = []
-    for item in parsed.items:
-        quantity, unit = parse_quantity(item.quantity)
+    for item in payload.items:
+        item_name = item.name.strip()
+        if not item_name:
+            continue
+        quantity, inferred_unit = parse_quantity(item.quantity)
+        unit = item.unit.strip().lower() if item.unit else inferred_unit
         receipt_items.append(
             ReceiptItem(
                 receipt_id=receipt.id,
                 store_id=store.id,
-                normalized_product_id=get_or_create_product_for_raw_item(db, item.name).id,
-                raw_item_name=item.name,
+                normalized_product_id=get_or_create_product_for_raw_item(db, item_name).id,
+                raw_item_name=item_name,
                 price=item.price,
                 quantity=quantity,
                 unit=unit,
-                purchased_at=parsed.purchased_at,
+                purchased_at=payload.purchased_at,
             )
         )
+
+    if not receipt_items:
+        raise HTTPException(status_code=400, detail="At least one item name is required.")
+
     receipt.items = receipt_items
 
     db.commit()
-    loaded_receipt = load_receipt(db, receipt.id)
-    return ReceiptUploadResponse(
-        receipt=loaded_receipt,
-        image_path=str(saved_path),
-        extracted_text=raw_text,
-        parsed=to_parsed_receipt_response(parsed),
-    )
+    return load_receipt(db, receipt.id)
 
 
 @app.get("/receipts", response_model=list[ReceiptRead])

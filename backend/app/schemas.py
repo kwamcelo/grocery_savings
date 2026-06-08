@@ -117,6 +117,42 @@ class SearchResult(BaseModel):
     receipt_id: int
 
 
+class ProductSearchCandidate(BaseModel):
+    product_id: int
+    name: str
+    category: str | None
+    aliases: list[str]
+    matched_raw_item_names: list[str]
+    lowest_observed_price: float | None
+    most_recent_observed_price: float | None
+    last_purchased_at: date | None
+
+
+class ProductPurchaseRecord(BaseModel):
+    item_id: int
+    receipt_id: int
+    raw_item_name: str
+    price: float
+    quantity: float | None
+    unit: str | None
+    purchased_at: date | None
+
+
+class ProductStorePriceGroup(BaseModel):
+    store_id: int
+    store_name: str
+    lowest_observed_price: float
+    most_recent_observed_price: float
+    last_purchased_at: date | None
+    purchases: list[ProductPurchaseRecord]
+
+
+class ProductPriceHistory(BaseModel):
+    product_id: int
+    product_name: str
+    stores: list[ProductStorePriceGroup]
+
+
 class StorePriceSummary(BaseModel):
     store_name: str
     lowest_price: float

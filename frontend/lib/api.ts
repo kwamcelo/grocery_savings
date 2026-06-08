@@ -95,6 +95,42 @@ export type CompareResult = {
   by_store: StorePriceSummary[];
 };
 
+export type ProductSearchCandidate = {
+  product_id: number;
+  name: string;
+  category: string | null;
+  aliases: string[];
+  matched_raw_item_names: string[];
+  lowest_observed_price: number | null;
+  most_recent_observed_price: number | null;
+  last_purchased_at: string | null;
+};
+
+export type ProductPurchaseRecord = {
+  item_id: number;
+  receipt_id: number;
+  raw_item_name: string;
+  price: number;
+  quantity: number | null;
+  unit: string | null;
+  purchased_at: string | null;
+};
+
+export type ProductStorePriceGroup = {
+  store_id: number;
+  store_name: string;
+  lowest_observed_price: number;
+  most_recent_observed_price: number;
+  last_purchased_at: string | null;
+  purchases: ProductPurchaseRecord[];
+};
+
+export type ProductPriceHistory = {
+  product_id: number;
+  product_name: string;
+  stores: ProductStorePriceGroup[];
+};
+
 export async function previewReceipt(file: File): Promise<ReceiptPreviewResponse> {
   const body = new FormData();
   body.append("file", file);
@@ -137,6 +173,22 @@ export async function searchItems(query: string): Promise<SearchResult[]> {
   const response = await fetch(`${API_URL}/items/search?q=${encodeURIComponent(query)}`);
   if (!response.ok) {
     throw new Error("Unable to search items");
+  }
+  return response.json();
+}
+
+export async function searchProducts(query: string): Promise<ProductSearchCandidate[]> {
+  const response = await fetch(`${API_URL}/products/search?q=${encodeURIComponent(query)}`);
+  if (!response.ok) {
+    throw new Error("Unable to search products");
+  }
+  return response.json();
+}
+
+export async function fetchProductPriceHistory(productId: number): Promise<ProductPriceHistory> {
+  const response = await fetch(`${API_URL}/products/${productId}/price-history`);
+  if (!response.ok) {
+    throw new Error("Unable to load product price history");
   }
   return response.json();
 }

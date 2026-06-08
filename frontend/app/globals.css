@@ -320,6 +320,90 @@ tr:last-child td {
   gap: 12px;
 }
 
+.product-candidates,
+.store-price-groups {
+  display: grid;
+  gap: 12px;
+}
+
+.product-candidate {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 16px;
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.product-candidate.selected,
+.product-candidate:hover {
+  border-color: var(--accent);
+  background: var(--surface-muted);
+}
+
+.product-candidate span,
+.candidate-prices {
+  display: grid;
+  gap: 5px;
+}
+
+.product-candidate small,
+.candidate-prices small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.candidate-prices {
+  min-width: 180px;
+  text-align: right;
+}
+
+.store-price-group {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.store-price-group header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.store-price-group h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.store-price-metrics {
+  display: flex;
+  gap: 10px;
+}
+
+.store-price-metrics span {
+  display: grid;
+  gap: 5px;
+  min-width: 130px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.store-price-metrics strong {
+  color: var(--text);
+  font-size: 18px;
+}
+
 .ocr-text {
   max-height: 260px;
   overflow: auto;
@@ -335,8 +419,19 @@ tr:last-child td {
   .app-header,
   .page-title,
   .form-row,
-  .receipt-card header {
+  .receipt-card header,
+  .product-candidate,
+  .store-price-group header {
     align-items: stretch;
+    flex-direction: column;
+  }
+
+  .candidate-prices {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .store-price-metrics {
     flex-direction: column;
   }
 

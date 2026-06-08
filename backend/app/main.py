@@ -1,4 +1,5 @@
 import re
+from datetime import date
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +19,10 @@ from .schemas import (
     CompareResult,
     NormalizedProductRead,
     ParsedReceiptRead,
+    ProductPriceHistory,
+    ProductPurchaseRecord,
+    ProductSearchCandidate,
+    ProductStorePriceGroup,
     ReceiptPreviewResponse,
     ReceiptRead,
     SaveReceiptRequest,
@@ -65,6 +70,75 @@ def list_products(db: Session = Depends(get_db)) -> list[NormalizedProduct]:
             .options(selectinload(NormalizedProduct.aliases))
             .order_by(NormalizedProduct.name.asc())
         )
+    )
+
+
+@app.get("/products/search", response_model=list[ProductSearchCandidate])
+def search_products(q: str, db: Session = Depends(get_db)) -> list[ProductSearchCandidate]:
+    query_tokens = query_terms(q)
+    if not query_tokens:
+        return []
+
+    products = list(
+        db.scalars(
+            select(NormalizedProduct)
+            .options(
+                selectinload(NormalizedProduct.aliases),
+                selectinload(NormalizedProduct.receipt_items),
+            )
+            .order_by(NormalizedProduct.name.asc())
+        )
+    )
+
+    candidates = [
+        to_product_candidate(product)
+        for product in products
+        if product_matches_query(product, query_tokens)
+    ]
+    return sorted(
+        candidates,
+        key=lambda candidate: (
+            candidate.lowest_observed_price is None,
+            candidate.lowest_observed_price or 0,
+            candidate.name,
+        ),
+    )
+
+
+@app.get("/products/{product_id}/price-history", response_model=ProductPriceHistory)
+def get_product_price_history(
+    product_id: int,
+    db: Session = Depends(get_db),
+) -> ProductPriceHistory:
+    product = db.scalar(
+        select(NormalizedProduct).where(NormalizedProduct.id == product_id)
+    )
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    rows = db.execute(
+        select(ReceiptItem, Store)
+        .join(Store, ReceiptItem.store_id == Store.id)
+        .where(ReceiptItem.normalized_product_id == product_id)
+    ).all()
+
+    groups: dict[int, tuple[Store, list[ReceiptItem]]] = {}
+    for item, store in rows:
+        if store.id not in groups:
+            groups[store.id] = (store, [])
+        groups[store.id][1].append(item)
+
+    store_groups = [
+        to_store_price_group(store, items)
+        for store, items in groups.values()
+        if items
+    ]
+    store_groups.sort(key=lambda group: (group.lowest_observed_price, group.store_name))
+
+    return ProductPriceHistory(
+        product_id=product.id,
+        product_name=product.name,
+        stores=store_groups,
     )
 
 
@@ -341,6 +415,80 @@ def to_search_result(item: ReceiptItem, store: Store) -> SearchResult:
         purchased_at=item.purchased_at,
         receipt_id=item.receipt_id,
     )
+
+
+def to_product_candidate(product: NormalizedProduct) -> ProductSearchCandidate:
+    purchases = list(product.receipt_items)
+    sorted_by_recent = sorted(
+        purchases,
+        key=lambda item: item.purchased_at or date.min,
+        reverse=True,
+    )
+    return ProductSearchCandidate(
+        product_id=product.id,
+        name=product.name,
+        category=product.category,
+        aliases=sorted(alias.alias for alias in product.aliases),
+        matched_raw_item_names=sorted({item.raw_item_name for item in purchases}),
+        lowest_observed_price=round(min((item.price for item in purchases), default=0), 2)
+        if purchases
+        else None,
+        most_recent_observed_price=round(sorted_by_recent[0].price, 2)
+        if sorted_by_recent
+        else None,
+        last_purchased_at=sorted_by_recent[0].purchased_at if sorted_by_recent else None,
+    )
+
+
+def to_store_price_group(store: Store, items: list[ReceiptItem]) -> ProductStorePriceGroup:
+    purchases_by_price = sorted(items, key=lambda item: (item.price, item.purchased_at or ""))
+    purchases_by_recent = sorted(
+        items,
+        key=lambda item: item.purchased_at or date.min,
+        reverse=True,
+    )
+    most_recent = purchases_by_recent[0]
+    return ProductStorePriceGroup(
+        store_id=store.id,
+        store_name=store.name,
+        lowest_observed_price=round(purchases_by_price[0].price, 2),
+        most_recent_observed_price=round(most_recent.price, 2),
+        last_purchased_at=most_recent.purchased_at,
+        purchases=[
+            ProductPurchaseRecord(
+                item_id=item.id,
+                receipt_id=item.receipt_id,
+                raw_item_name=item.raw_item_name,
+                price=round(item.price, 2),
+                quantity=item.quantity,
+                unit=item.unit,
+                purchased_at=item.purchased_at,
+            )
+            for item in purchases_by_price
+        ],
+    )
+
+
+def product_matches_query(product: NormalizedProduct, tokens: list[str]) -> bool:
+    searchable_parts = [product.name]
+    searchable_parts.extend(alias.alias for alias in product.aliases)
+    searchable_parts.extend(item.raw_item_name for item in product.receipt_items)
+    searchable_text = " ".join(canonical_alias(part) for part in searchable_parts)
+    searchable_tokens = set(query_terms(searchable_text))
+    return all(token in searchable_tokens or token in searchable_text for token in tokens)
+
+
+def query_terms(value: str) -> list[str]:
+    terms = canonical_alias(value).split()
+    return [singularize(term) for term in terms if term]
+
+
+def singularize(term: str) -> str:
+    if len(term) > 3 and term.endswith("es"):
+        return term[:-2]
+    if len(term) > 3 and term.endswith("s"):
+        return term[:-1]
+    return term
 
 
 def to_parsed_receipt_response(parsed) -> ParsedReceiptRead:

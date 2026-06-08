@@ -20,6 +20,7 @@ A local full-stack app for uploading grocery receipt images, extracting receipt 
 |   |   |-- db.py
 |   |   |-- models.py
 |   |   |-- schemas.py
+|   |   |-- seed.py
 |   |   `-- services/
 |   |       |-- ocr.py
 |   |       `-- parser.py
@@ -63,6 +64,26 @@ Useful endpoints:
 - `GET /items/compare?name=milk`
 
 SQLite is created automatically at `backend/data/grocery_tracker.db`.
+
+To create the normalized schema and load test data:
+
+```bash
+cd backend
+source .venv/bin/activate
+python -m app.seed --reset
+```
+
+The seed data includes multiple receipt names that map to the same normalized product, such as `MANGO MX`, `MEX MANGO`, and `MANGOS` mapping to `Mexican Mango`.
+
+## Database Schema
+
+The backend uses five main SQLAlchemy tables:
+
+- `stores`: grocery store records.
+- `receipts`: uploaded receipt metadata, raw OCR text, purchase date, and `store_id`.
+- `receipt_items`: raw line items with `raw_item_name`, `price`, `quantity`, `unit`, `purchased_at`, `store_id`, `receipt_id`, and optional `normalized_product_id`.
+- `normalized_products`: cleaned product names such as `Mexican Mango`.
+- `product_aliases`: canonical aliases that map receipt text variants to a normalized product.
 
 ## OCR Setup
 

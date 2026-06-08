@@ -3,13 +3,20 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000
 export type ReceiptItem = {
   id: number;
   receipt_id: number;
+  store_id: number;
+  normalized_product_id: number | null;
+  raw_item_name: string;
   name: string;
-  quantity: string | null;
+  normalized_product_name: string | null;
+  quantity: number | null;
+  unit: string | null;
   price: number;
+  purchased_at: string | null;
 };
 
 export type Receipt = {
   id: number;
+  store_id: number;
   store_name: string;
   purchased_at: string | null;
   original_filename: string | null;
@@ -20,9 +27,13 @@ export type Receipt = {
 
 export type SearchResult = {
   item_id: number;
+  raw_item_name: string;
   name: string;
-  quantity: string | null;
+  normalized_product_name: string | null;
+  quantity: number | null;
+  unit: string | null;
   price: number;
+  store_id: number;
   store_name: string;
   purchased_at: string | null;
   receipt_id: number;

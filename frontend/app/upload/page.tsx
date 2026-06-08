@@ -73,7 +73,7 @@ export default function UploadPage() {
                 {receipt.items.map((item) => (
                   <tr key={item.id}>
                     <td>{item.name}</td>
-                    <td>{item.quantity ?? "-"}</td>
+                    <td>{formatQuantity(item.quantity, item.unit)}</td>
                     <td className="numeric">{formatMoney(item.price)}</td>
                   </tr>
                 ))}
@@ -84,4 +84,9 @@ export default function UploadPage() {
       ) : null}
     </div>
   );
+}
+
+function formatQuantity(quantity: number | null, unit: string | null): string {
+  if (quantity === null && !unit) return "-";
+  return [quantity, unit].filter(Boolean).join(" ");
 }

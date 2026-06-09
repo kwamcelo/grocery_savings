@@ -106,6 +106,8 @@ def prepare_image_for_gemini(
     mime_type: str | None,
 ) -> tuple[bytes, str]:
     normalized_mime_type = (mime_type or "").split(";")[0].lower()
+    if normalized_mime_type == "application/pdf":
+        return image_bytes, normalized_mime_type
     if normalized_mime_type in {"image/jpeg", "image/png", "image/webp"}:
         return image_bytes, normalized_mime_type
 

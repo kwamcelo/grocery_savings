@@ -164,8 +164,10 @@ async def upload_receipt(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    if file.content_type and not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Please upload an image file.")
+    if file.content_type and not (
+        file.content_type.startswith("image/") or file.content_type == "application/pdf"
+    ):
+        raise HTTPException(status_code=400, detail="Please upload a receipt photo or PDF.")
 
     image_bytes = await file.read()
     saved_path = save_upload(file, image_bytes)

@@ -12,7 +12,7 @@ Add screenshots to `docs/screenshots/` before publishing the portfolio page.
 
 ## Features
 
-- Receipt image upload with local file storage.
+- Receipt photo and PDF upload with local file storage.
 - OCR extraction through Google Gemini.
 - Editable OCR review screen before saving.
 - Store name, location, purchase date, item name, purchased quantity, unit, receipt unit price, and total item price capture.

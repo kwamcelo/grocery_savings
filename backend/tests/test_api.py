@@ -219,6 +219,41 @@ def test_receipt_image_fixtures_are_uploadable_when_present(
     assert response.json()["extracted_text"]
 
 
+def test_receipt_pdf_upload_is_allowed(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_extract_receipt_from_image(file_bytes: bytes, mime_type: str | None = None):
+        assert mime_type == "application/pdf"
+        parsed = ParsedReceipt(
+            store_name="PDF Market",
+            store_location_text=None,
+            purchased_at=None,
+            items=[
+                ParsedItem(
+                    line="Apples 3.99",
+                    name="Apples",
+                    quantity=None,
+                    unit=None,
+                    unit_price=None,
+                    unit_price_unit=None,
+                    price=3.99,
+                )
+            ],
+        )
+        return "PDF Market\nApples 3.99", parsed
+
+    monkeypatch.setattr("app.main.extract_receipt_from_image", fake_extract_receipt_from_image)
+
+    response = client.post(
+        "/receipts/upload",
+        files={"file": ("receipt.pdf", b"%PDF-1.4\n%test", "application/pdf")},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["original_filename"] == "receipt.pdf"
+
+
 def test_img_4255_expected_payload_saves_explicit_unit_prices(client: TestClient) -> None:
     expected_path = Path(__file__).resolve().parents[1] / "test_receipts" / "IMG_4255_expected.json"
     payload = json.loads(expected_path.read_text())

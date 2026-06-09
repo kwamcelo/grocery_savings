@@ -177,7 +177,7 @@ export default function UploadPage() {
         <div>
           <h1>Upload a receipt</h1>
           <p>
-            Add a receipt photo, check the items we found, and fix anything that
+            Add a receipt photo or PDF, check the items we found, and fix anything that
             does not look right.
           </p>
         </div>
@@ -186,7 +186,7 @@ export default function UploadPage() {
       <form className="upload-box" onSubmit={handleUpload}>
         <input
           aria-label="Receipt image"
-          accept="image/*"
+          accept="image/*,application/pdf,.pdf"
           type="file"
           onChange={(event) => setFile(event.target.files?.[0] ?? null)}
         />

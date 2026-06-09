@@ -62,8 +62,7 @@ export default function SearchPage() {
         <div>
           <h1>Search product prices</h1>
           <p>
-            Search normalized product names and raw receipt item names, then compare
-            store prices for the selected product.
+            Search for a grocery item and see what you paid for it at each store.
           </p>
         </div>
       </section>
@@ -86,9 +85,9 @@ export default function SearchPage() {
 
       {hasSearched && !isSearching ? (
         <section className="stack">
-          <h2>Matching products</h2>
+          <h2>Matching items</h2>
           {candidates.length === 0 ? (
-            <p className="empty-state">No matching products found.</p>
+            <p className="empty-state">No matching items found.</p>
           ) : (
             <div className="product-candidates">
               {candidates.map((candidate) => (
@@ -135,12 +134,12 @@ export default function SearchPage() {
           <div className="page-title compact">
             <div>
               <h1>{history.product_name}</h1>
-              <p>Stores show most recent price first, with lowest observed price beside it.</p>
+              <p>See the latest price beside the lowest price you have found.</p>
             </div>
           </div>
 
           {history.stores.length === 0 ? (
-            <p className="empty-state">No purchases saved for this product yet.</p>
+            <p className="empty-state">No saved purchases for this item yet.</p>
           ) : (
             <div className="store-price-groups">
               {history.stores.map((store) => (
@@ -168,21 +167,21 @@ export default function SearchPage() {
                     <table>
                       <thead>
                         <tr>
-                          <th>Raw item</th>
+                          <th>Receipt name</th>
                           <th>Quantity</th>
                           <th>Date</th>
-                          <th className="numeric">Receipt unit price</th>
+                          <th className="numeric">Price per unit</th>
                           <th className="numeric">Price</th>
                         </tr>
                       </thead>
                       <tbody>
                         {store.purchases.map((purchase) => (
                           <tr key={purchase.item_id}>
-                            <td>{purchase.raw_item_name}</td>
-                            <td>{formatQuantity(purchase.quantity, purchase.unit)}</td>
-                            <td>{purchase.purchased_at ?? "-"}</td>
-                            <td className="numeric">{formatUnitPrice(purchase)}</td>
-                            <td className="numeric">{formatMoney(purchase.price)}</td>
+                            <td data-label="Receipt name">{purchase.raw_item_name}</td>
+                            <td data-label="Quantity">{formatQuantity(purchase.quantity, purchase.unit)}</td>
+                            <td data-label="Date">{purchase.purchased_at ?? "-"}</td>
+                            <td data-label="Price per unit" className="numeric">{formatUnitPrice(purchase)}</td>
+                            <td data-label="Price" className="numeric">{formatMoney(purchase.price)}</td>
                           </tr>
                         ))}
                       </tbody>

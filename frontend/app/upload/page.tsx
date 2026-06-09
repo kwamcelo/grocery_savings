@@ -177,8 +177,8 @@ export default function UploadPage() {
         <div>
           <h1>Upload a receipt</h1>
           <p>
-            Upload an image, review the OCR result, correct any item details, then save
-            the final receipt to the database.
+            Add a receipt photo, check the items we found, and fix anything that
+            does not look right.
           </p>
         </div>
       </section>
@@ -192,7 +192,7 @@ export default function UploadPage() {
         />
         <button disabled={!file || isUploading} type="submit">
           <Upload size={18} aria-hidden="true" />
-          {isUploading ? "Extracting..." : "Extract receipt"}
+          {isUploading ? "Reading..." : "Read receipt"}
         </button>
       </form>
 
@@ -202,9 +202,8 @@ export default function UploadPage() {
         <section className="panel stack">
           <header>
             <h2>
-              <ReceiptText size={20} aria-hidden="true" /> Review receipt
+              <ReceiptText size={20} aria-hidden="true" /> Check your receipt
             </h2>
-            <p className="muted">Saved image: {preview.image_path}</p>
           </header>
 
           <div className="review-grid">
@@ -239,8 +238,8 @@ export default function UploadPage() {
                   <th>Item name</th>
                   <th>Quantity</th>
                   <th>Unit</th>
-                  <th>Receipt unit price</th>
-                  <th>Unit price unit</th>
+                  <th>Price per unit</th>
+                  <th>Per</th>
                   <th>Suggested product</th>
                   <th className="numeric">Price</th>
                   <th aria-label="Actions" />
@@ -249,14 +248,14 @@ export default function UploadPage() {
               <tbody>
                 {items.map((item, index) => (
                   <tr key={`${item.source_line ?? "manual"}-${index}`}>
-                    <td>
+                    <td data-label="Item name">
                       <input
                         className="table-input"
                         value={item.name}
                         onChange={(event) => updateItem(index, { name: event.target.value })}
                       />
                     </td>
-                    <td>
+                    <td data-label="Quantity">
                       <input
                         className="table-input"
                         value={item.quantity}
@@ -265,14 +264,14 @@ export default function UploadPage() {
                         }
                       />
                     </td>
-                    <td>
+                    <td data-label="Unit">
                       <input
                         className="table-input"
                         value={item.unit}
                         onChange={(event) => updateItem(index, { unit: event.target.value })}
                       />
                     </td>
-                    <td>
+                    <td data-label="Price per unit">
                       <input
                         className="table-input numeric"
                         min="0"
@@ -282,7 +281,7 @@ export default function UploadPage() {
                         onChange={(event) => updateItem(index, { unitPrice: event.target.value })}
                       />
                     </td>
-                    <td>
+                    <td data-label="Per">
                       <input
                         className="table-input"
                         placeholder={item.unit || "lb"}
@@ -292,8 +291,8 @@ export default function UploadPage() {
                         }
                       />
                     </td>
-                    <td>{renderSuggestion(item, index, updateItem)}</td>
-                    <td>
+                    <td data-label="Suggested item">{renderSuggestion(item, index, updateItem)}</td>
+                    <td data-label="Price">
                       <input
                         className="table-input numeric"
                         min="0"
@@ -303,7 +302,7 @@ export default function UploadPage() {
                         onChange={(event) => updateItem(index, { price: event.target.value })}
                       />
                     </td>
-                    <td className="numeric">
+                    <td className="numeric row-action-cell">
                       <button
                         aria-label="Remove item"
                         className="icon-button"
@@ -326,19 +325,19 @@ export default function UploadPage() {
             </button>
             <button disabled={isSaving || !storeName || items.length === 0} type="button" onClick={handleSave}>
               <Save size={18} aria-hidden="true" />
-              {isSaving ? "Saving..." : "Save Receipt"}
+              {isSaving ? "Saving..." : "Save receipt"}
             </button>
           </div>
 
           {savedReceipt ? (
             <p className="save-status">
-              Saved receipt #{savedReceipt.id} with {savedReceipt.items.length} item
+              Receipt saved with {savedReceipt.items.length} item
               {savedReceipt.items.length === 1 ? "" : "s"} totaling{" "}
               {formatMoney(savedReceipt.items.reduce((sum, item) => sum + item.price, 0))}.
             </p>
           ) : null}
 
-          <h3>Extracted text</h3>
+          <h3>Text we found</h3>
           <pre className="ocr-text">{preview.extracted_text}</pre>
         </section>
       ) : null}

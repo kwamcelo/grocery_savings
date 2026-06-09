@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BarChart3, ReceiptText, Search, Upload } from "lucide-react";
 
 const links = [
-  { href: "/", label: "Dashboard", icon: ReceiptText },
+  { href: "/", label: "Home", icon: ReceiptText },
   { href: "/upload", label: "Upload", icon: Upload },
   { href: "/search", label: "Search", icon: Search },
   { href: "/compare", label: "Compare", icon: BarChart3 },
@@ -12,7 +12,7 @@ export function AppNav() {
   return (
     <header className="app-header">
       <Link className="brand" href="/">
-        Receipt Prices
+        Grocery Savings
       </Link>
       <nav className="nav-links" aria-label="Main navigation">
         {links.map((link) => {

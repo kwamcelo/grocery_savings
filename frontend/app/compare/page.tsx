@@ -38,8 +38,7 @@ export default function ComparePage() {
         <div>
           <h1>Compare prices by store</h1>
           <p>
-            Compare by receipt unit price when available, then calculate a unit price
-            from quantity and unit. Rows without either fall back to total item price.
+            See which store has the better price for an item you buy.
           </p>
         </div>
       </section>
@@ -60,15 +59,15 @@ export default function ComparePage() {
 
       {error ? <p className="error">{error}</p> : null}
 
-      {isComparing ? <p className="muted">Loading comparison...</p> : null}
+      {isComparing ? <p className="muted">Checking prices...</p> : null}
 
       {result && !isComparing ? (
         <div className="stack">
           {hasUnreliableComparisons ? (
             <p className="comparison-warning">
               <AlertTriangle size={18} aria-hidden="true" />
-              Some stores are compared by total price because receipt unit price,
-              quantity, or unit data is missing. Those comparisons may be unreliable.
+              Some prices may be harder to compare because the receipt was missing
+              size or weight details.
             </p>
           ) : null}
 
@@ -83,7 +82,7 @@ export default function ComparePage() {
                   <p className={store.comparison_reliable ? "muted" : "error"}>
                     {store.comparison_reliable
                       ? `Lowest ${formatMoney(store.lowest_price)} total`
-                      : store.comparison_warning}
+                      : "Check the item details before comparing."}
                   </p>
                 </article>
               ))
@@ -111,26 +110,26 @@ function ComparisonTable({ results }: { results: SearchResult[] }) {
             <th>Quantity</th>
             <th>Store</th>
             <th>Date</th>
-            <th className="numeric">Receipt unit price</th>
+            <th className="numeric">Price per unit</th>
             <th className="numeric">Total</th>
-            <th className="numeric">Comparable price</th>
+            <th className="numeric">Best comparison</th>
           </tr>
         </thead>
         <tbody>
           {results.map((result) => (
             <tr key={result.item_id}>
-              <td>{result.name}</td>
-              <td>{formatQuantity(result.quantity, result.unit)}</td>
-              <td>{result.store_name}</td>
-              <td>{result.purchased_at ?? "-"}</td>
-              <td className="numeric">{formatSourceUnitPrice(result)}</td>
-              <td className="numeric">{formatMoney(result.price)}</td>
-              <td className="numeric">
+              <td data-label="Item">{result.name}</td>
+              <td data-label="Quantity">{formatQuantity(result.quantity, result.unit)}</td>
+              <td data-label="Store">{result.store_name}</td>
+              <td data-label="Date">{result.purchased_at ?? "-"}</td>
+              <td data-label="Price per unit" className="numeric">{formatSourceUnitPrice(result)}</td>
+              <td data-label="Total" className="numeric">{formatMoney(result.price)}</td>
+              <td data-label="Best comparison" className="numeric">
                 <span className={result.comparison_reliable ? "" : "unreliable-price"}>
                   {formatItemComparison(result)}
                 </span>
                 {!result.comparison_reliable ? (
-                  <small className="comparison-note">{result.comparison_warning}</small>
+                  <small className="comparison-note">Missing size or weight details</small>
                 ) : null}
               </td>
             </tr>

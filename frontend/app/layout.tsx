@@ -3,8 +3,8 @@ import { AppNav } from "@/components/AppNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Grocery Receipt Price Tracker",
-  description: "Track grocery prices from receipt uploads.",
+  title: "Grocery Savings",
+  description: "Find better grocery prices from your receipts.",
 };
 
 export default function RootLayout({

@@ -29,7 +29,6 @@ export default function UploadPage() {
   const [preview, setPreview] = useState<ReceiptPreviewResponse | null>(null);
   const [storeName, setStoreName] = useState("");
   const [storeLocation, setStoreLocation] = useState("");
-  const [storePhone, setStorePhone] = useState("");
   const [purchasedAt, setPurchasedAt] = useState("");
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [savedReceipt, setSavedReceipt] = useState<Receipt | null>(null);
@@ -51,7 +50,6 @@ export default function UploadPage() {
       setPreview(result);
       setStoreName(result.parsed.store_name);
       setStoreLocation(result.parsed.store_location_text ?? "");
-      setStorePhone(result.parsed.store_phone ?? "");
       setPurchasedAt(result.parsed.purchased_at ?? "");
       setItems(
         result.parsed.items.map((item) => ({
@@ -131,7 +129,6 @@ export default function UploadPage() {
       const receipt = await saveReceipt({
         store_name: storeName,
         store_location_text: storeLocation || null,
-        store_phone: storePhone || null,
         purchased_at: purchasedAt || null,
         image_path: preview.image_path,
         original_filename: preview.original_filename,
@@ -231,13 +228,6 @@ export default function UploadPage() {
               <input
                 value={storeLocation}
                 onChange={(event) => setStoreLocation(event.target.value)}
-              />
-            </label>
-            <label>
-              Store phone
-              <input
-                value={storePhone}
-                onChange={(event) => setStorePhone(event.target.value)}
               />
             </label>
           </div>

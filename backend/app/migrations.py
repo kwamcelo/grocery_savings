@@ -5,7 +5,6 @@ from sqlalchemy.engine import Engine
 SQLITE_COLUMN_MIGRATIONS = {
     "stores": {
         "location_text": "ALTER TABLE stores ADD COLUMN location_text VARCHAR(500)",
-        "phone": "ALTER TABLE stores ADD COLUMN phone VARCHAR(80)",
     },
     "receipts": {
         "image_path": "ALTER TABLE receipts ADD COLUMN image_path VARCHAR(500)",

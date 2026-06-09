@@ -1,5 +1,6 @@
 import os
 from io import BytesIO
+from shutil import which
 
 
 PLACEHOLDER_RECEIPT_TEXT = """Fresh Market
@@ -16,20 +17,32 @@ Spinach 3.29
 def extract_text_from_image(image_bytes: bytes) -> str:
     """Extract receipt text.
 
-    Set USE_TESSERACT=true after installing the Tesseract binary locally.
-    The placeholder keeps the API working during local setup and tests.
+    OCR_PROVIDER=tesseract is the default for local development.
+    Set OCR_PROVIDER=placeholder only when you intentionally want demo text.
     """
-    if os.getenv("USE_TESSERACT", "").lower() != "true":
+    provider = os.getenv("OCR_PROVIDER", "tesseract").strip().lower()
+    if provider == "placeholder":
         return os.getenv("PLACEHOLDER_OCR_TEXT", PLACEHOLDER_RECEIPT_TEXT)
+    if provider != "tesseract":
+        raise RuntimeError(f"Unsupported OCR_PROVIDER '{provider}'. Use 'tesseract' or 'placeholder'.")
+
+    if not which("tesseract"):
+        raise RuntimeError(
+            "Tesseract is not installed or is not on PATH. Install it with "
+            "`brew install tesseract`, then restart the backend. To use demo text "
+            "instead, set OCR_PROVIDER=placeholder."
+        )
 
     try:
         from PIL import Image
+        from pillow_heif import register_heif_opener
         import pytesseract
 
-        image = Image.open(BytesIO(image_bytes))
+        register_heif_opener()
+        image = Image.open(BytesIO(image_bytes)).convert("RGB")
         return pytesseract.image_to_string(image)
     except Exception as exc:
         raise RuntimeError(
             "Tesseract OCR failed. Confirm the tesseract binary is installed "
-            "or unset USE_TESSERACT to use placeholder OCR."
+            "and that the uploaded image format is supported."
         ) from exc

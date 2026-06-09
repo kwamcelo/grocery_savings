@@ -69,7 +69,6 @@ def test_save_receipt_persists_corrected_items(client: TestClient) -> None:
         json={
             "store_name": "Demo Market",
             "store_location_text": "100 Test St Vancouver BC",
-            "store_phone": "604-555-0100",
             "purchased_at": "2026-06-08",
             "raw_text": "Demo Market\nMilk 2L 4.99",
             "items": [

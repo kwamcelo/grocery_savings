@@ -7,7 +7,6 @@ def test_parse_receipt_text_extracts_store_location_date_and_items() -> None:
             [
                 "Fresh Market",
                 "123 Main St Vancouver BC V6B 1A1",
-                "604-555-0101",
                 "2026-06-01",
                 "MANGO MX 2.99",
                 "Milk 2L 5.49",
@@ -18,7 +17,6 @@ def test_parse_receipt_text_extracts_store_location_date_and_items() -> None:
 
     assert parsed.store_name == "Fresh Market"
     assert parsed.store_location_text == "123 Main St Vancouver BC V6B 1A1"
-    assert parsed.store_phone == "604-555-0101"
     assert parsed.purchased_at.isoformat() == "2026-06-01"
     assert [(item.name, item.price) for item in parsed.items] == [
         ("Mango Mx", 2.99),

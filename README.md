@@ -15,7 +15,7 @@ Add screenshots to `docs/screenshots/` before publishing the portfolio page.
 - Receipt image upload with local file storage.
 - OCR extraction through Tesseract when enabled, with placeholder OCR for local demos.
 - Editable OCR review screen before saving.
-- Store name, location, phone, purchase date, item name, purchased quantity, unit, receipt unit price, and total item price capture.
+- Store name, location, purchase date, item name, purchased quantity, unit, receipt unit price, and total item price capture.
 - Normalized products and aliases so `MANGO MX`, `MEX MANGO`, and `MANGOS` can map to `Mexican Mango`.
 - Fuzzy product normalization suggestions with confirm/reject controls.
 - Product search across normalized product names, aliases, and raw receipt item names.
@@ -73,6 +73,16 @@ uvicorn app.main:app --reload
 
 The API runs at `http://localhost:8000`.
 
+For real local OCR, install the Tesseract binary and keep `OCR_PROVIDER=tesseract`
+in `backend/.env`:
+
+```bash
+brew install tesseract
+```
+
+If `OCR_PROVIDER=placeholder`, uploads intentionally return the demo Fresh Market
+text instead of reading the image.
+
 Useful endpoints:
 
 - `GET /health`
@@ -114,7 +124,7 @@ The `backend/test_receipts/` folder is used by tests for upload coverage when re
 
 ## Database Schema
 
-- `stores`: store name, location text, phone.
+- `stores`: store name and location text.
 - `receipts`: uploaded receipt metadata, raw OCR text, purchase date, image path, and `store_id`.
 - `receipt_items`: raw item name, total price, purchased quantity, unit, optional receipt unit price, optional receipt unit price unit, purchase date, store, receipt, and normalized product link.
 - `normalized_products`: canonical product names such as `Mexican Mango`.
@@ -127,7 +137,7 @@ OCR quality depends heavily on image quality. Blurry receipts, shadows, rotated 
 The current parser is simple and modular. It looks for:
 
 - a likely store name near the top
-- address and phone-like lines
+- address-like lines
 - common purchase date formats
 - item lines ending in a price
 - simple quantity/unit tokens such as `2L`, `1 lb`, `500g`, or `12 ct`

@@ -9,7 +9,6 @@ class StoreRead(BaseModel):
     id: int
     name: str
     location_text: str | None
-    phone: str | None
     created_at: datetime
 
 
@@ -86,7 +85,6 @@ class ParsedReceiptItemRead(BaseModel):
 class ParsedReceiptRead(BaseModel):
     store_name: str
     store_location_text: str | None
-    store_phone: str | None
     purchased_at: date | None
     items: list[ParsedReceiptItemRead]
 
@@ -113,7 +111,6 @@ class CorrectedReceiptItem(BaseModel):
 class SaveReceiptRequest(BaseModel):
     store_name: str
     store_location_text: str | None = None
-    store_phone: str | None = None
     purchased_at: date | None = None
     image_path: str | None = None
     original_filename: str | None = None

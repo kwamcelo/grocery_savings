@@ -50,7 +50,6 @@ export type NormalizationSuggestion = {
 export type ParsedReceipt = {
   store_name: string;
   store_location_text: string | null;
-  store_phone: string | null;
   purchased_at: string | null;
   items: ParsedReceiptItem[];
 };
@@ -77,7 +76,6 @@ export type CorrectedReceiptItem = {
 export type SaveReceiptRequest = {
   store_name: string;
   store_location_text: string | null;
-  store_phone: string | null;
   purchased_at: string | null;
   image_path: string | null;
   original_filename: string | null;

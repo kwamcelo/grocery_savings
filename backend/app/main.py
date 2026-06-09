@@ -164,7 +164,10 @@ async def upload_receipt(
 
     image_bytes = await file.read()
     saved_path = save_upload(file, image_bytes)
-    raw_text = extract_text_from_image(image_bytes)
+    try:
+        raw_text = extract_text_from_image(image_bytes)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     parsed = parse_receipt_text(raw_text)
 
     return ReceiptPreviewResponse(
@@ -187,7 +190,6 @@ def save_receipt(
         db,
         payload.store_name,
         location_text=payload.store_location_text,
-        phone=payload.store_phone,
     )
     receipt = Receipt(
         store_id=store.id,
@@ -326,18 +328,15 @@ def get_or_create_store(
     db: Session,
     name: str,
     location_text: str | None = None,
-    phone: str | None = None,
 ) -> Store:
     store_name = " ".join(name.split()).strip() or "Unknown Store"
     store = db.scalar(select(Store).where(func.lower(Store.name) == store_name.lower()))
     if store:
         if location_text and not store.location_text:
             store.location_text = location_text
-        if phone and not store.phone:
-            store.phone = phone
         return store
 
-    store = Store(name=store_name, location_text=location_text, phone=phone)
+    store = Store(name=store_name, location_text=location_text)
     db.add(store)
     db.flush()
     return store
@@ -786,7 +785,6 @@ def to_parsed_receipt_response(parsed, db: Session | None = None) -> ParsedRecei
     return ParsedReceiptRead(
         store_name=parsed.store_name,
         store_location_text=parsed.store_location_text,
-        store_phone=parsed.store_phone,
         purchased_at=parsed.purchased_at,
         items=[
             {

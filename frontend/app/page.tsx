@@ -51,6 +51,10 @@ export default async function DashboardPage() {
 
       <section className="panel">
         <h2>Common workflows</h2>
+        <p className="muted">
+          Seed demo data with <code>python -m app.seed --reset</code>, then try searching
+          for <code>Mexican mangos</code>, <code>milk</code>, or <code>spinach</code>.
+        </p>
         <div className="actions">
           <Link className="button secondary" href="/search">
             <Search size={18} aria-hidden="true" />

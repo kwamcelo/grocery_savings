@@ -10,6 +10,8 @@ export type ReceiptItem = {
   normalized_product_name: string | null;
   quantity: number | null;
   unit: string | null;
+  unit_price: number | null;
+  unit_price_unit: string | null;
   price: number;
   purchased_at: string | null;
 };
@@ -30,6 +32,9 @@ export type ParsedReceiptItem = {
   line: string;
   name: string;
   quantity: string | null;
+  unit: string | null;
+  unit_price: number | null;
+  unit_price_unit: string | null;
   price: number;
   normalization_suggestion: NormalizationSuggestion | null;
 };
@@ -62,6 +67,8 @@ export type CorrectedReceiptItem = {
   price: number;
   quantity: string | null;
   unit: string | null;
+  unit_price: number | null;
+  unit_price_unit: string | null;
   source_line: string | null;
   normalized_product_id: number | null;
   reject_normalization_suggestion: boolean;
@@ -85,6 +92,8 @@ export type SearchResult = {
   normalized_product_name: string | null;
   quantity: number | null;
   unit: string | null;
+  source_unit_price: number | null;
+  source_unit_price_unit: string | null;
   price: number;
   unit_price: number | null;
   unit_price_label: string | null;
@@ -134,6 +143,8 @@ export type ProductPurchaseRecord = {
   receipt_id: number;
   raw_item_name: string;
   price: number;
+  unit_price: number | null;
+  unit_price_unit: string | null;
   quantity: number | null;
   unit: string | null;
   purchased_at: string | null;

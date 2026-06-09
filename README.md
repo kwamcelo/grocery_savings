@@ -1,6 +1,27 @@
-# Grocery Receipt Price Tracker
+# Grocery Savings
 
-A local full-stack app for uploading grocery receipt images, extracting receipt text, storing item prices, and comparing prices across stores.
+A full-stack grocery receipt price tracker. Upload receipt images, review OCR output, normalize product names, and compare grocery prices across stores with unit-price awareness.
+
+## Screenshots
+
+Add screenshots to `docs/screenshots/` before publishing the portfolio page.
+
+| Dashboard | OCR Review | Product Search | Price Compare |
+| --- | --- | --- | --- |
+| `docs/screenshots/dashboard.png` | `docs/screenshots/ocr-review.png` | `docs/screenshots/search.png` | `docs/screenshots/compare.png` |
+
+## Features
+
+- Receipt image upload with local file storage.
+- OCR extraction through Tesseract when enabled, with placeholder OCR for local demos.
+- Editable OCR review screen before saving.
+- Store name, location, phone, purchase date, item name, purchased quantity, unit, receipt unit price, and total item price capture.
+- Normalized products and aliases so `MANGO MX`, `MEX MANGO`, and `MANGOS` can map to `Mexican Mango`.
+- Fuzzy product normalization suggestions with confirm/reject controls.
+- Product search across normalized product names, aliases, and raw receipt item names.
+- Price comparison by store that prefers receipt-provided unit prices, then calculates unit prices from quantity/unit when needed.
+- Clear warnings when comparisons fall back to total price because unit-price, quantity, or unit data is missing.
+- SQLite seed data for demos and backend tests.
 
 ## Stack
 
@@ -8,7 +29,7 @@ A local full-stack app for uploading grocery receipt images, extracting receipt 
 - Backend: FastAPI, Python
 - Database: SQLite for local development
 - ORM: SQLAlchemy
-- OCR: Tesseract via `pytesseract` when enabled, with placeholder OCR available by default
+- OCR: Tesseract via `pytesseract`, or placeholder OCR for local demos
 
 ## Project Structure
 
@@ -17,32 +38,28 @@ A local full-stack app for uploading grocery receipt images, extracting receipt 
 |-- backend/
 |   |-- app/
 |   |   |-- main.py
-|   |   |-- db.py
 |   |   |-- models.py
 |   |   |-- schemas.py
 |   |   |-- seed.py
+|   |   |-- migrations.py
 |   |   `-- services/
 |   |       |-- ocr.py
-|   |       `-- parser.py
+|   |       |-- parser.py
+|   |       `-- storage.py
+|   |-- tests/
+|   |-- test_receipts/
 |   |-- data/
 |   |-- requirements.txt
 |   `-- .env.example
 |-- frontend/
 |   |-- app/
-|   |   |-- page.tsx
-|   |   |-- upload/page.tsx
-|   |   |-- search/page.tsx
-|   |   `-- compare/page.tsx
 |   |-- components/
 |   |-- lib/
-|   |-- package.json
-|   `-- .env.local.example
+|   `-- package.json
 `-- README.md
 ```
 
 ## Backend Setup
-
-From the repository root:
 
 ```bash
 cd backend
@@ -50,6 +67,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
+python -m app.seed --reset
 uvicorn app.main:app --reload
 ```
 
@@ -58,48 +76,13 @@ The API runs at `http://localhost:8000`.
 Useful endpoints:
 
 - `GET /health`
-- `POST /receipts/upload`
-- `GET /receipts`
-- `GET /items/search?q=milk`
+- `POST /receipts/upload` for OCR preview
+- `POST /receipts` for saving reviewed receipt data
+- `GET /products/search?q=Mexican%20mangos`
+- `GET /products/{product_id}/price-history`
 - `GET /items/compare?name=milk`
 
-SQLite is created automatically at `backend/data/grocery_tracker.db`.
-
-To create the normalized schema and load test data:
-
-```bash
-cd backend
-source .venv/bin/activate
-python -m app.seed --reset
-```
-
-The seed data includes multiple receipt names that map to the same normalized product, such as `MANGO MX`, `MEX MANGO`, and `MANGOS` mapping to `Mexican Mango`.
-
-## Database Schema
-
-The backend uses five main SQLAlchemy tables:
-
-- `stores`: grocery store records.
-- `receipts`: uploaded receipt metadata, raw OCR text, purchase date, and `store_id`.
-- `receipt_items`: raw line items with `raw_item_name`, `price`, `quantity`, `unit`, `purchased_at`, `store_id`, `receipt_id`, and optional `normalized_product_id`.
-- `normalized_products`: cleaned product names such as `Mexican Mango`.
-- `product_aliases`: canonical aliases that map receipt text variants to a normalized product.
-
-## OCR Setup
-
-Placeholder OCR is enabled by default so the app works before Tesseract is installed. To use real OCR:
-
-1. Install the Tesseract binary.
-   - macOS: `brew install tesseract`
-   - Ubuntu/Debian: `sudo apt-get install tesseract-ocr`
-2. Set `USE_TESSERACT=true` in `backend/.env`.
-3. Restart the FastAPI server.
-
-Receipt parsing is intentionally simple in this scaffold. It detects the first likely store line, common date formats, and item lines ending in a price.
-
 ## Frontend Setup
-
-In a separate terminal:
 
 ```bash
 cd frontend
@@ -110,25 +93,78 @@ npm run dev
 
 The app runs at `http://localhost:3000`.
 
-Pages included:
+## Demo Data
 
-- `/` dashboard with recent receipts and totals
-- `/upload` image upload and extracted item preview
-- `/search` item price search
-- `/compare` price comparison by store
+Load sample stores, receipts, normalized products, and aliases:
 
-## Local Development Flow
+```bash
+cd backend
+source .venv/bin/activate
+python -m app.seed --reset
+```
 
-1. Start the backend with `uvicorn app.main:app --reload`.
-2. Start the frontend with `npm run dev`.
-3. Open `http://localhost:3000`.
-4. Upload any image while placeholder OCR is enabled. The backend will store a sample receipt.
-5. Search for `milk`, `eggs`, or `bananas` to verify the end-to-end flow.
+Try these demo queries:
 
-## Next Steps
+- `Mexican mangos`
+- `milk`
+- `spinach`
+- `bananas`
 
-- Add migrations with Alembic before schema changes become frequent.
-- Improve receipt parsing with store-specific rules and confidence scores.
-- Store uploaded image files or object storage references.
-- Add user accounts if receipts should be private per user.
-- Add tests for parser edge cases and API endpoints.
+The `backend/test_receipts/` folder is used by tests for upload coverage when receipt images are present.
+
+## Database Schema
+
+- `stores`: store name, location text, phone.
+- `receipts`: uploaded receipt metadata, raw OCR text, purchase date, image path, and `store_id`.
+- `receipt_items`: raw item name, total price, purchased quantity, unit, optional receipt unit price, optional receipt unit price unit, purchase date, store, receipt, and normalized product link.
+- `normalized_products`: canonical product names such as `Mexican Mango`.
+- `product_aliases`: receipt text aliases that map back to normalized products.
+
+## OCR Limitations
+
+OCR quality depends heavily on image quality. Blurry receipts, shadows, rotated images, thermal-paper fading, store-specific formatting, and abbreviated product names can all reduce accuracy. The app intentionally adds a review screen before saving because OCR and receipt parsing should be treated as suggestions, not truth.
+
+The current parser is simple and modular. It looks for:
+
+- a likely store name near the top
+- address and phone-like lines
+- common purchase date formats
+- item lines ending in a price
+- simple quantity/unit tokens such as `2L`, `1 lb`, `500g`, or `12 ct`
+- receipt-provided unit prices such as `$1.99/lb` or `3 @ $0.69`
+
+## Testing
+
+Run backend tests:
+
+```bash
+cd backend
+python3 -m pytest
+```
+
+Current coverage includes:
+
+- receipt parsing
+- saving reviewed receipts
+- product search
+- unit-aware price comparison
+- receipt fixture uploads from `backend/test_receipts/`
+
+Run frontend checks:
+
+```bash
+cd frontend
+npm run build
+```
+
+## Future Improvements
+
+- Replace lightweight SQLite migrations with Alembic.
+- Add authentication and per-user receipt ownership.
+- Store image files in object storage for production.
+- Add receipt image preprocessing before OCR.
+- Add store-specific parsing rules and parser confidence scores.
+- Add barcode or SKU support for stronger product normalization.
+- Add human review queues for uncertain product matches.
+- Add charts for price trends over time.
+- Add export to CSV.

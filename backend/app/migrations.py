@@ -10,6 +10,10 @@ SQLITE_COLUMN_MIGRATIONS = {
     "receipts": {
         "image_path": "ALTER TABLE receipts ADD COLUMN image_path VARCHAR(500)",
     },
+    "receipt_items": {
+        "unit_price": "ALTER TABLE receipt_items ADD COLUMN unit_price FLOAT",
+        "unit_price_unit": "ALTER TABLE receipt_items ADD COLUMN unit_price_unit VARCHAR(40)",
+    },
 }
 
 

@@ -8,17 +8,24 @@ export default function ComparePage() {
   const [name, setName] = useState("");
   const [result, setResult] = useState<CompareResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isComparing, setIsComparing] = useState(false);
 
   async function handleCompare(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      setError("Enter an item name to compare.");
+      return;
+    }
 
     setError(null);
+    setIsComparing(true);
 
     try {
       setResult(await compareItems(name.trim()));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Compare failed");
+    } finally {
+      setIsComparing(false);
     }
   }
 
@@ -31,8 +38,8 @@ export default function ComparePage() {
         <div>
           <h1>Compare prices by store</h1>
           <p>
-            Compare by unit price when quantity and unit are available. Rows with missing
-            units fall back to total item price.
+            Compare by receipt unit price when available, then calculate a unit price
+            from quantity and unit. Rows without either fall back to total item price.
           </p>
         </div>
       </section>
@@ -45,21 +52,23 @@ export default function ComparePage() {
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <button type="submit">
+        <button disabled={isComparing} type="submit">
           <BarChart3 size={18} aria-hidden="true" />
-          Compare
+          {isComparing ? "Comparing..." : "Compare"}
         </button>
       </form>
 
       {error ? <p className="error">{error}</p> : null}
 
-      {result ? (
+      {isComparing ? <p className="muted">Loading comparison...</p> : null}
+
+      {result && !isComparing ? (
         <div className="stack">
           {hasUnreliableComparisons ? (
             <p className="comparison-warning">
               <AlertTriangle size={18} aria-hidden="true" />
-              Some stores are compared by total price because quantity or unit data is
-              missing. Those comparisons may be unreliable.
+              Some stores are compared by total price because receipt unit price,
+              quantity, or unit data is missing. Those comparisons may be unreliable.
             </p>
           ) : null}
 
@@ -102,6 +111,7 @@ function ComparisonTable({ results }: { results: SearchResult[] }) {
             <th>Quantity</th>
             <th>Store</th>
             <th>Date</th>
+            <th className="numeric">Receipt unit price</th>
             <th className="numeric">Total</th>
             <th className="numeric">Comparable price</th>
           </tr>
@@ -113,6 +123,7 @@ function ComparisonTable({ results }: { results: SearchResult[] }) {
               <td>{formatQuantity(result.quantity, result.unit)}</td>
               <td>{result.store_name}</td>
               <td>{result.purchased_at ?? "-"}</td>
+              <td className="numeric">{formatSourceUnitPrice(result)}</td>
               <td className="numeric">{formatMoney(result.price)}</td>
               <td className="numeric">
                 <span className={result.comparison_reliable ? "" : "unreliable-price"}>
@@ -128,6 +139,13 @@ function ComparisonTable({ results }: { results: SearchResult[] }) {
       </table>
     </div>
   );
+}
+
+function formatSourceUnitPrice(result: SearchResult): string {
+  if (result.source_unit_price !== null && result.source_unit_price_unit) {
+    return `${formatMoney(result.source_unit_price)} / ${result.source_unit_price_unit}`;
+  }
+  return "-";
 }
 
 function formatComparisonPrice(store: CompareResult["by_store"][number]): string {

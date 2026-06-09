@@ -1,0 +1,195 @@
+{
+  "store_name": "Kim's MART",
+  "store_location_text": "519, 523 E Broadway, Vancouver, BC V5T1X4",
+  "purchased_at": "2026-05-19",
+  "raw_text": "Demo Market\nMilk 2L 4.99",
+  "items": [
+    {
+      "name": "GingerAle, Canada Dry",
+      "quantity": "355",
+      "unit": "ml",
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 1.29,
+      "source_line": "GingerAle, Canada Dry 355ml 1.29",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 10.71,
+      "source_line": "MEAT 10.71",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 10.07,
+      "source_line": "MEAT 10.07",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 5.00,
+      "source_line": "MEAT 5.00",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 5.58,
+      "source_line": "MEAT 5.58",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 5.32,
+      "source_line": "MEAT 5.32",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Hot&Spicy Noodle 80Gx5",
+      "quantity": "1",
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 3.99,
+      "source_line": "Hot&Spicy Noodle 80G*5 3.99",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Ramune melon",
+      "quantity": "200",
+      "unit": "ml",
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 1.99,
+      "source_line": "Ramune melon 200 ml 1.99",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Sweet Potato",
+      "quantity": "1.81",
+      "unit": "lb",
+      "unit_price": 1.99,
+      "unit_price_unit": "lb",
+      "price": 3.60,
+      "source_line": "Sweet Potato 1.81 lb @ $1.99/lb 3.60",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Broccoli",
+      "quantity": "1.32",
+      "unit": "lb",
+      "unit_price": 3.49,
+      "unit_price_unit": "lb",
+      "price": 4.61,
+      "source_line": "Broccoli 1.32 lb @ $3.49/lb 4.61",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Sweet Mandarins 2lbs",
+      "quantity": "2",
+      "unit": "lb",
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 4.99,
+      "source_line": "Sweet Mandarins 2lbs 4.99",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Yellow Jumbo Onion",
+      "quantity": "0.99",
+      "unit": "lb",
+      "unit_price": 0.99,
+      "unit_price_unit": "lb",
+      "price": 0.98,
+      "source_line": "Yellow Jumbo Onion 0.99 lb @ $0.99/lb 0.98",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Lemon",
+      "quantity": "3",
+      "unit": "ct",
+      "unit_price": 0.69,
+      "unit_price_unit": "ct",
+      "price": 1.99,
+      "source_line": "Lemon 3 @ $0.69 1.99 Multiple item 3 @ 1.99",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Avocado",
+      "quantity": "2",
+      "unit": "ct",
+      "unit_price": 1.99,
+      "unit_price_unit": "ct",
+      "price": 2.99,
+      "source_line": "Avocado 2 @ $1.99 2.99 Multiple item 2 @ 1.99",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Yellow Potato",
+      "quantity": "1.31",
+      "unit": "lb",
+      "unit_price": 1.99,
+      "unit_price_unit": "lb",
+      "price": 2.61,
+      "source_line": "Yellow Potato 1.31 lb @ $1.99/lb 2.61",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Ginger",
+      "quantity": "0.22",
+      "unit": "lb",
+      "unit_price": 1.99,
+      "unit_price_unit": "lb",
+      "price": 0.44,
+      "source_line": "Ginger 0.22 lb @ $1.99/lb 0.44",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Golden Valley Egg 12",
+      "quantity": "12",
+      "unit": "ct",
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 4.99,
+      "source_line": "Golden Valley Egg 12 4.99",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    }
+  ]
+}

@@ -206,6 +206,9 @@ def save_receipt(
             continue
         quantity, inferred_unit = parse_quantity(item.quantity)
         unit = item.unit.strip().lower() if item.unit else inferred_unit
+        unit_price_unit = None
+        if item.unit_price is not None:
+            unit_price_unit = item.unit_price_unit.strip().lower() if item.unit_price_unit else unit
         normalized_product = resolve_normalized_product_for_item(db, item)
         receipt_items.append(
             ReceiptItem(
@@ -216,6 +219,8 @@ def save_receipt(
                 price=item.price,
                 quantity=quantity,
                 unit=unit,
+                unit_price=item.unit_price,
+                unit_price_unit=unit_price_unit,
                 purchased_at=payload.purchased_at,
             )
         )
@@ -565,6 +570,22 @@ class UnitComparison:
 
 
 def calculate_unit_comparison(item: ReceiptItem) -> UnitComparison:
+    if item.unit_price is not None and item.unit_price > 0 and item.unit_price_unit:
+        normalized_unit_price = normalize_explicit_unit_price(
+            item.unit_price,
+            item.unit_price_unit,
+        )
+        if normalized_unit_price:
+            comparison_price, unit, label = normalized_unit_price
+            return UnitComparison(
+                round(comparison_price, 2),
+                label,
+                round(comparison_price, 2),
+                f"unit:{unit}",
+                True,
+                None,
+            )
+
     if not item.quantity or item.quantity <= 0:
         return UnitComparison(
             None,
@@ -609,6 +630,18 @@ def calculate_unit_comparison(item: ReceiptItem) -> UnitComparison:
 
     unit_price = round(item.price / base_quantity, 2)
     return UnitComparison(unit_price, label, unit_price, f"unit:{unit}", True, None)
+
+
+def normalize_explicit_unit_price(
+    unit_price: float,
+    unit: str,
+) -> tuple[float, str, str] | None:
+    normalized = normalize_unit(unit)
+    if not normalized:
+        return None
+
+    unit_quantity, canonical_unit, label = normalized
+    return unit_price / unit_quantity, canonical_unit, label
 
 
 def normalize_unit(unit: str) -> tuple[float, str, str] | None:
@@ -657,6 +690,8 @@ def to_search_result(item: ReceiptItem, store: Store) -> SearchResult:
         normalized_product_name=item.normalized_product_name,
         quantity=item.quantity,
         unit=item.unit,
+        source_unit_price=item.unit_price,
+        source_unit_price_unit=item.unit_price_unit,
         price=item.price,
         unit_price=comparison.unit_price,
         unit_price_label=comparison.unit_price_label,
@@ -714,6 +749,8 @@ def to_store_price_group(store: Store, items: list[ReceiptItem]) -> ProductStore
                 receipt_id=item.receipt_id,
                 raw_item_name=item.raw_item_name,
                 price=round(item.price, 2),
+                unit_price=item.unit_price,
+                unit_price_unit=item.unit_price_unit,
                 quantity=item.quantity,
                 unit=item.unit,
                 purchased_at=item.purchased_at,
@@ -756,6 +793,9 @@ def to_parsed_receipt_response(parsed, db: Session | None = None) -> ParsedRecei
                 "line": item.line,
                 "name": item.name,
                 "quantity": item.quantity,
+                "unit": item.unit,
+                "unit_price": item.unit_price,
+                "unit_price_unit": item.unit_price_unit,
                 "price": item.price,
                 "normalization_suggestion": to_normalization_suggestion(
                     find_product_match(db, item.name) if db else None

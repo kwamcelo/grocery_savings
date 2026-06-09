@@ -22,6 +22,9 @@ class ParsedItem:
     line: str
     name: str
     quantity: str | None
+    unit: str | None
+    unit_price: float | None
+    unit_price_unit: str | None
     price: float
 
 
@@ -124,19 +127,66 @@ def parse_item_line(line: str) -> ParsedItem | None:
     if not raw_name or len(raw_name) < 2:
         return None
 
-    quantity = infer_quantity(raw_name)
+    unit_price, unit_price_unit = infer_unit_price(raw_name)
+    quantity, unit = infer_quantity(raw_name)
     return ParsedItem(
         line=line,
-        name=clean_item_name(raw_name),
+        name=clean_item_name(raw_name, has_unit_price=unit_price is not None),
         quantity=quantity,
+        unit=unit,
+        unit_price=unit_price,
+        unit_price_unit=unit_price_unit,
         price=price,
     )
 
 
-def infer_quantity(raw_name: str) -> str | None:
+def infer_quantity(raw_name: str) -> tuple[str | None, str | None]:
     match = re.search(r"\b(\d+(?:\.\d+)?\s?(?:kg|g|lb|lbs|oz|l|ml|ct|x))\b", raw_name, re.I)
-    return match.group(1) if match else None
+    if match:
+        token = match.group(1)
+        parts = re.match(r"(?P<quantity>\d+(?:\.\d+)?)\s?(?P<unit>[a-zA-Z]+)", token)
+        if parts:
+            return parts.group("quantity"), parts.group("unit").lower()
+        return token, None
+
+    count_match = re.search(r"\b(?P<quantity>\d+(?:\.\d+)?)\s*@\s*\$?\d+(?:[.,]\d{2})\b", raw_name)
+    if count_match:
+        return count_match.group("quantity"), "ct"
+
+    return None, None
 
 
-def clean_item_name(raw_name: str) -> str:
-    return re.sub(r"\s+", " ", raw_name).strip().title()
+def infer_unit_price(raw_name: str) -> tuple[float | None, str | None]:
+    unit_match = re.search(
+        r"@\s*\$?(?P<unit_price>\d+(?:[.,]\d{2}))\s*/\s*(?P<unit>[a-zA-Z]+)\b",
+        raw_name,
+        re.I,
+    )
+    if unit_match:
+        return (
+            float(unit_match.group("unit_price").replace(",", ".")),
+            unit_match.group("unit").lower(),
+        )
+
+    count_match = re.search(
+        r"\b\d+(?:\.\d+)?\s*@\s*\$?(?P<unit_price>\d+(?:[.,]\d{2}))\b",
+        raw_name,
+        re.I,
+    )
+    if count_match:
+        return float(count_match.group("unit_price").replace(",", ".")), "ct"
+
+    return None, None
+
+
+def clean_item_name(raw_name: str, has_unit_price: bool = False) -> str:
+    cleaned = raw_name
+    if has_unit_price:
+        cleaned = re.sub(
+            r"\b\d+(?:\.\d+)?\s?(?:kg|g|lb|lbs|oz|l|ml|ct)\b\s*@\s*\$?\d+(?:[.,]\d{2})\s*/\s*[a-zA-Z]+\b",
+            "",
+            cleaned,
+            flags=re.I,
+        )
+        cleaned = re.sub(r"\b\d+(?:\.\d+)?\s*@\s*\$?\d+(?:[.,]\d{2}).*$", "", cleaned, flags=re.I)
+    return re.sub(r"\s+", " ", cleaned).strip().title()

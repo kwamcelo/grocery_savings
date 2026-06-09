@@ -44,6 +44,8 @@ class ReceiptItemRead(BaseModel):
     normalized_product_name: str | None
     quantity: float | None
     unit: str | None
+    unit_price: float | None
+    unit_price_unit: str | None
     price: float
     purchased_at: date | None
 
@@ -74,6 +76,9 @@ class ParsedReceiptItemRead(BaseModel):
     line: str
     name: str
     quantity: str | None
+    unit: str | None = None
+    unit_price: float | None = None
+    unit_price_unit: str | None = None
     price: float
     normalization_suggestion: NormalizationSuggestionRead | None = None
 
@@ -98,6 +103,8 @@ class CorrectedReceiptItem(BaseModel):
     price: float
     quantity: str | None = None
     unit: str | None = None
+    unit_price: float | None = None
+    unit_price_unit: str | None = None
     source_line: str | None = None
     normalized_product_id: int | None = None
     reject_normalization_suggestion: bool = False
@@ -121,6 +128,8 @@ class SearchResult(BaseModel):
     normalized_product_name: str | None
     quantity: float | None
     unit: str | None
+    source_unit_price: float | None = None
+    source_unit_price_unit: str | None = None
     price: float
     unit_price: float | None = None
     unit_price_label: str | None = None
@@ -150,6 +159,8 @@ class ProductPurchaseRecord(BaseModel):
     receipt_id: int
     raw_item_name: str
     price: float
+    unit_price: float | None = None
+    unit_price_unit: str | None = None
     quantity: float | None
     unit: str | None
     purchased_at: date | None

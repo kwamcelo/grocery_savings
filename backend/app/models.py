@@ -97,6 +97,8 @@ class ReceiptItem(Base):
     price: Mapped[float] = mapped_column(Float)
     quantity: Mapped[float | None] = mapped_column(Float, nullable=True)
     unit: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    unit_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    unit_price_unit: Mapped[str | None] = mapped_column(String(40), nullable=True)
     purchased_at: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
 
     receipt: Mapped[Receipt] = relationship("Receipt", back_populates="items")

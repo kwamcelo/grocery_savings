@@ -15,6 +15,8 @@ type ReviewItem = {
   name: string;
   quantity: string;
   unit: string;
+  unitPrice: string;
+  unitPriceUnit: string;
   price: string;
   source_line: string | null;
   suggestion: NormalizationSuggestion | null;
@@ -55,7 +57,9 @@ export default function UploadPage() {
         result.parsed.items.map((item) => ({
           name: item.name,
           quantity: item.quantity ?? "",
-          unit: "",
+          unit: item.unit ?? "",
+          unitPrice: item.unit_price === null ? "" : String(item.unit_price),
+          unitPriceUnit: item.unit_price_unit ?? "",
           price: String(item.price),
           source_line: item.line,
           suggestion: item.normalization_suggestion,
@@ -75,6 +79,51 @@ export default function UploadPage() {
   async function handleSave() {
     if (!preview) return;
 
+    if (!storeName.trim()) {
+      setError("Store name is required before saving.");
+      return;
+    }
+
+    const correctedItems = items
+      .filter((item) => item.name.trim() && item.price.trim())
+      .map((item) => ({
+        name: item.name.trim(),
+        quantity: item.quantity.trim() || null,
+        unit: item.unit.trim() || null,
+        unit_price: item.unitPrice.trim() ? Number(item.unitPrice) : null,
+        unit_price_unit: item.unitPriceUnit.trim() || null,
+        price: Number(item.price),
+        source_line: item.source_line,
+        normalized_product_id: item.confirmed_product_id,
+        reject_normalization_suggestion: item.rejected_suggestion,
+      }));
+
+    if (correctedItems.length === 0) {
+      setError("Add at least one item with a name and price before saving.");
+      return;
+    }
+
+    if (
+      correctedItems.some(
+        (item) =>
+          !Number.isFinite(item.price) ||
+          item.price < 0 ||
+          (item.unit_price !== null && (!Number.isFinite(item.unit_price) || item.unit_price < 0)),
+      )
+    ) {
+      setError("Each item price and unit price must be valid non-negative numbers.");
+      return;
+    }
+
+    if (
+      correctedItems.some(
+        (item) => item.unit_price !== null && !item.unit_price_unit && !item.unit,
+      )
+    ) {
+      setError("Unit price needs a unit, such as lb, kg, L, ml, or ct.");
+      return;
+    }
+
     setIsSaving(true);
     setError(null);
 
@@ -87,17 +136,7 @@ export default function UploadPage() {
         image_path: preview.image_path,
         original_filename: preview.original_filename,
         raw_text: preview.extracted_text,
-        items: items
-          .filter((item) => item.name.trim() && item.price.trim())
-          .map((item) => ({
-            name: item.name.trim(),
-            quantity: item.quantity.trim() || null,
-            unit: item.unit.trim() || null,
-            price: Number(item.price),
-            source_line: item.source_line,
-            normalized_product_id: item.confirmed_product_id,
-            reject_normalization_suggestion: item.rejected_suggestion,
-          })),
+        items: correctedItems,
       });
       setSavedReceipt(receipt);
     } catch (err) {
@@ -124,6 +163,8 @@ export default function UploadPage() {
         name: "",
         quantity: "",
         unit: "",
+        unitPrice: "",
+        unitPriceUnit: "",
         price: "",
         source_line: null,
         suggestion: null,
@@ -208,6 +249,8 @@ export default function UploadPage() {
                   <th>Item name</th>
                   <th>Quantity</th>
                   <th>Unit</th>
+                  <th>Receipt unit price</th>
+                  <th>Unit price unit</th>
                   <th>Suggested product</th>
                   <th className="numeric">Price</th>
                   <th aria-label="Actions" />
@@ -237,6 +280,26 @@ export default function UploadPage() {
                         className="table-input"
                         value={item.unit}
                         onChange={(event) => updateItem(index, { unit: event.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="table-input numeric"
+                        min="0"
+                        step="0.01"
+                        type="number"
+                        value={item.unitPrice}
+                        onChange={(event) => updateItem(index, { unitPrice: event.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="table-input"
+                        placeholder={item.unit || "lb"}
+                        value={item.unitPriceUnit}
+                        onChange={(event) =>
+                          updateItem(index, { unitPriceUnit: event.target.value })
+                        }
                       />
                     </td>
                     <td>{renderSuggestion(item, index, updateItem)}</td>

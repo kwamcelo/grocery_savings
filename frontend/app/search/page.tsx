@@ -17,21 +17,28 @@ export default function SearchPage() {
   const [history, setHistory] = useState<ProductPriceHistory | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!query.trim()) return;
+    if (!query.trim()) {
+      setError("Enter a product name to search.");
+      return;
+    }
 
     setError(null);
     setHasSearched(true);
     setHistory(null);
     setSelectedProductId(null);
+    setIsSearching(true);
 
     try {
       setCandidates(await searchProducts(query.trim()));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Search failed");
+    } finally {
+      setIsSearching(false);
     }
   }
 
@@ -69,15 +76,15 @@ export default function SearchPage() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <button type="submit">
+        <button disabled={isSearching} type="submit">
           <Search size={18} aria-hidden="true" />
-          Search
+          {isSearching ? "Searching..." : "Search"}
         </button>
       </form>
 
       {error ? <p className="error">{error}</p> : null}
 
-      {hasSearched ? (
+      {hasSearched && !isSearching ? (
         <section className="stack">
           <h2>Matching products</h2>
           {candidates.length === 0 ? (
@@ -128,7 +135,7 @@ export default function SearchPage() {
           <div className="page-title compact">
             <div>
               <h1>{history.product_name}</h1>
-              <p>Stores sorted from lowest observed price to highest.</p>
+              <p>Stores show most recent price first, with lowest observed price beside it.</p>
             </div>
           </div>
 
@@ -164,6 +171,7 @@ export default function SearchPage() {
                           <th>Raw item</th>
                           <th>Quantity</th>
                           <th>Date</th>
+                          <th className="numeric">Receipt unit price</th>
                           <th className="numeric">Price</th>
                         </tr>
                       </thead>
@@ -173,6 +181,7 @@ export default function SearchPage() {
                             <td>{purchase.raw_item_name}</td>
                             <td>{formatQuantity(purchase.quantity, purchase.unit)}</td>
                             <td>{purchase.purchased_at ?? "-"}</td>
+                            <td className="numeric">{formatUnitPrice(purchase)}</td>
                             <td className="numeric">{formatMoney(purchase.price)}</td>
                           </tr>
                         ))}
@@ -192,4 +201,11 @@ export default function SearchPage() {
 function formatQuantity(quantity: number | null, unit: string | null): string {
   if (quantity === null && !unit) return "-";
   return [quantity, unit].filter(Boolean).join(" ");
+}
+
+function formatUnitPrice(purchase: ProductPriceHistory["stores"][number]["purchases"][number]): string {
+  if (purchase.unit_price !== null && purchase.unit_price_unit) {
+    return `${formatMoney(purchase.unit_price)} / ${purchase.unit_price_unit}`;
+  }
+  return "-";
 }

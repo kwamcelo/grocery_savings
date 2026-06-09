@@ -1,0 +1,184 @@
+{
+  "store_name": "Kim's Mart",
+  "store_location_text": "519, 523 E. Broadway, Vancouver, BC V5T 1X4",
+  "purchased_at": null,
+  "raw_text": "Kim's Mart\n519, 523 E. Broadway, Vancouver, BC V5T 1X4",
+  "items": [
+    {
+      "name": "KOBE Melon Cream Soda 350ml",
+      "quantity": "2",
+      "unit": "ct",
+      "unit_price": 1.99,
+      "unit_price_unit": "ct",
+      "price": 2.99,
+      "source_line": "KOBE Melon Cream Soda 350ml 2 @ $1.99 Multiple Item 2 @ $2.99 2.99",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 9.74,
+      "source_line": "MEAT 9.74",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 9.29,
+      "source_line": "MEAT 9.29",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 9.14,
+      "source_line": "MEAT 9.14",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Ataulfo mango",
+      "quantity": "4",
+      "unit": "ct",
+      "unit_price": 1.99,
+      "unit_price_unit": "ct",
+      "price": 5.98,
+      "source_line": "Ataulfo mango 4 @ $1.99 Multiple Item 4 @ $5.98 5.98",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Broccoli",
+      "quantity": "1.75",
+      "unit": "lb",
+      "unit_price": 2.99,
+      "unit_price_unit": "lb",
+      "price": 5.23,
+      "source_line": "Broccoli 1.75 lb @ $2.99 / lb 5.23",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Avocado",
+      "quantity": "3",
+      "unit": "ct",
+      "unit_price": 1.99,
+      "unit_price_unit": "ct",
+      "price": 4.98,
+      "source_line": "Avocado 3 @ $1.99 Multiple Item 3 @ $4.98 4.98",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Yellow Potato",
+      "quantity": "1.64",
+      "unit": "lb",
+      "unit_price": 1.99,
+      "unit_price_unit": "lb",
+      "price": 3.26,
+      "source_line": "Yellow Potato 1.64 lb @ $1.99 / lb 3.26",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Sweet Potato",
+      "quantity": "1.56",
+      "unit": "lb",
+      "unit_price": 1.99,
+      "unit_price_unit": "lb",
+      "price": 3.10,
+      "source_line": "Sweet Potato 1.56 lb @ $1.99 / lb 3.10",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Long English Cucumber",
+      "quantity": "2",
+      "unit": "ct",
+      "unit_price": 1.99,
+      "unit_price_unit": "ct",
+      "price": 2.99,
+      "source_line": "Long English Cucumber 2 @ $1.99 Multiple Item 2 @ $2.99 2.99",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 9.43,
+      "source_line": "MEAT 9.43",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 10.71,
+      "source_line": "MEAT 10.71",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 7.07,
+      "source_line": "MEAT 7.07",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 7.46,
+      "source_line": "MEAT 7.46",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 7.53,
+      "source_line": "MEAT 7.53",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "MEAT",
+      "quantity": null,
+      "unit": null,
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 28.62,
+      "source_line": "MEAT 28.62",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    }
+  ]
+}

@@ -33,7 +33,7 @@ from .schemas import (
     StorePriceSummary,
     StoreRead,
 )
-from .services.ocr import extract_text_from_image
+from .services.ocr import extract_receipt_from_image, gemini_config_status
 from .services.parser import parse_receipt_text
 from .services.storage import save_upload
 
@@ -67,6 +67,11 @@ def startup() -> None:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/ocr/config")
+def ocr_config() -> dict[str, str | bool | int]:
+    return gemini_config_status()
 
 
 @app.get("/stores", response_model=list[StoreRead])
@@ -165,10 +170,13 @@ async def upload_receipt(
     image_bytes = await file.read()
     saved_path = save_upload(file, image_bytes)
     try:
-        raw_text = extract_text_from_image(image_bytes)
+        raw_text, parsed_receipt = extract_receipt_from_image(
+            image_bytes,
+            mime_type=file.content_type,
+        )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    parsed = parse_receipt_text(raw_text)
+    parsed = parsed_receipt or parse_receipt_text(raw_text)
 
     return ReceiptPreviewResponse(
         image_path=str(saved_path),

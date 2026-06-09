@@ -1,4 +1,5 @@
 from app.services.parser import parse_receipt_text
+from app.services.ocr import parsed_receipt_from_gemini_data
 
 
 def test_parse_receipt_text_extracts_store_location_date_and_items() -> None:
@@ -51,3 +52,30 @@ def test_parse_receipt_text_extracts_receipt_unit_price() -> None:
     assert parsed.items[1].unit == "ct"
     assert parsed.items[1].unit_price == 0.69
     assert parsed.items[1].unit_price_unit == "ct"
+
+
+def test_parsed_receipt_from_gemini_data_uses_structured_items() -> None:
+    parsed = parsed_receipt_from_gemini_data(
+        {
+            "store_name": "Kim's MART",
+            "store_location_text": "519 E Broadway Vancouver BC V5T1X4",
+            "purchased_at": "2026-05-19",
+            "items": [
+                {
+                    "name": "Sweet Potato",
+                    "quantity": "1.81",
+                    "unit": "lb",
+                    "unit_price": 1.99,
+                    "unit_price_unit": "lb",
+                    "price": 3.60,
+                    "source_line": "Sweet Potato 1.81 lb @ $1.99/lb 3.60",
+                }
+            ],
+        }
+    )
+
+    assert parsed.store_name == "Kim's MART"
+    assert parsed.store_location_text == "519 E Broadway Vancouver BC V5T1X4"
+    assert parsed.purchased_at.isoformat() == "2026-05-19"
+    assert parsed.items[0].name == "Sweet Potato"
+    assert parsed.items[0].unit_price == 1.99

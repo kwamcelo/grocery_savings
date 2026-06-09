@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.services.parser import ParsedItem, ParsedReceipt
 from app.models import NormalizedProduct, ProductAlias, Receipt, ReceiptItem, Store
 
 
@@ -174,7 +175,10 @@ def test_compare_prices_flags_missing_units(
     assert "Missing quantity or unit" in body["by_store"][0]["comparison_warning"]
 
 
-def test_receipt_image_fixtures_are_uploadable_when_present(client: TestClient) -> None:
+def test_receipt_image_fixtures_are_uploadable_when_present(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     receipt_dir = Path(__file__).resolve().parents[1] / "test_receipts"
     image_paths = [
         path
@@ -183,6 +187,27 @@ def test_receipt_image_fixtures_are_uploadable_when_present(client: TestClient) 
     ]
     if not image_paths:
         pytest.skip("No image receipts found in backend/test_receipts.")
+
+    def fake_extract_receipt_from_image(image_bytes: bytes, mime_type: str | None = None):
+        parsed = ParsedReceipt(
+            store_name="Demo Market",
+            store_location_text="100 Test St Vancouver BC",
+            purchased_at=None,
+            items=[
+                ParsedItem(
+                    line="Milk 2L 4.99",
+                    name="Milk",
+                    quantity="2",
+                    unit="l",
+                    unit_price=None,
+                    unit_price_unit=None,
+                    price=4.99,
+                )
+            ],
+        )
+        return "Demo Market\nMilk 2L 4.99", parsed
+
+    monkeypatch.setattr("app.main.extract_receipt_from_image", fake_extract_receipt_from_image)
 
     image_path = image_paths[0]
     response = client.post(

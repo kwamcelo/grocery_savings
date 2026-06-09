@@ -10,11 +10,6 @@ from app.db import Base, get_db
 from app.main import app
 
 
-@pytest.fixture(autouse=True)
-def placeholder_ocr(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("OCR_PROVIDER", "placeholder")
-
-
 engine = create_engine(
     "sqlite://",
     connect_args={"check_same_thread": False},

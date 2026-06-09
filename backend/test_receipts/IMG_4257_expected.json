@@ -1,0 +1,74 @@
+{
+  "store_name": "City Avenue Market - Commercial Dr",
+  "store_location_text": "2279 Commercial Drive, Vancouver, BC V5N 4B6",
+  "purchased_at": null,
+  "raw_text": "City Avenue Market - Commercial Dr\n2279 Commercial Drive, Vancouver, BC V5N 4B6",
+  "items": [
+    {
+      "name": "Blueberries",
+      "quantity": "2",
+      "unit": "ct",
+      "unit_price": 2.99,
+      "unit_price_unit": "ct",
+      "price": 5.00,
+      "source_line": "Blueberries 2 @ $2.99 each package price discount $0.98 5.00",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Mandarins",
+      "quantity": "1.94",
+      "unit": "lb",
+      "unit_price": 2.49,
+      "unit_price_unit": "lb",
+      "price": 4.83,
+      "source_line": "Mandarins lb 1.94 lb @ $2.49/lb 4.83",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Long English Cucumbers",
+      "quantity": "1",
+      "unit": "ct",
+      "unit_price": 1.49,
+      "unit_price_unit": "ct",
+      "price": 1.49,
+      "source_line": "Long English Cucumbers Each 1 @ $1.49 each 4/$5.00 1.49",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Ataulfo Mangoes",
+      "quantity": "3",
+      "unit": "ct",
+      "unit_price": 1.88,
+      "unit_price_unit": "ct",
+      "price": 5.00,
+      "source_line": "Ataulfo Mangoes Each 3 @ $1.88 each package price discount $0.64 5.00",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Local Green Leaf Lettuce",
+      "quantity": "1",
+      "unit": "ct",
+      "unit_price": 2.99,
+      "unit_price_unit": "ct",
+      "price": 2.99,
+      "source_line": "Local Green Leaf Lettuce Each 1 @ $2.99 each 2/$5.00 2.99",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    },
+    {
+      "name": "Avocado Oil 750 mL",
+      "quantity": "750",
+      "unit": "ml",
+      "unit_price": null,
+      "unit_price_unit": null,
+      "price": 16.98,
+      "source_line": "Avocado Oil 750 mL 1 16.98",
+      "normalized_product_id": null,
+      "reject_normalization_suggestion": false
+    }
+  ]
+}

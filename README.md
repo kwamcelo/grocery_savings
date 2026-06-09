@@ -13,7 +13,7 @@ Add screenshots to `docs/screenshots/` before publishing the portfolio page.
 ## Features
 
 - Receipt image upload with local file storage.
-- OCR extraction through Tesseract when enabled, with placeholder OCR for local demos.
+- OCR extraction through Google Gemini.
 - Editable OCR review screen before saving.
 - Store name, location, purchase date, item name, purchased quantity, unit, receipt unit price, and total item price capture.
 - Normalized products and aliases so `MANGO MX`, `MEX MANGO`, and `MANGOS` can map to `Mexican Mango`.
@@ -29,7 +29,7 @@ Add screenshots to `docs/screenshots/` before publishing the portfolio page.
 - Backend: FastAPI, Python
 - Database: SQLite for local development
 - ORM: SQLAlchemy
-- OCR: Tesseract via `pytesseract`, or placeholder OCR for local demos
+- OCR: Google Gemini via `google-genai`
 
 ## Project Structure
 
@@ -73,15 +73,15 @@ uvicorn app.main:app --reload
 
 The API runs at `http://localhost:8000`.
 
-For real local OCR, install the Tesseract binary and keep `OCR_PROVIDER=tesseract`
-in `backend/.env`:
+For Gemini OCR, add your API key to `backend/.env`:
 
-```bash
-brew install tesseract
+```env
+GEMINI_API_KEY=your-api-key
+GEMINI_MODEL=gemini-3.5-flash
 ```
 
-If `OCR_PROVIDER=placeholder`, uploads intentionally return the demo Fresh Market
-text instead of reading the image.
+If Gemini rejects the key as invalid, replace `GEMINI_API_KEY` with a valid key
+from Google AI Studio and restart the backend.
 
 Useful endpoints:
 

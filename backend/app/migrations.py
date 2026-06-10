@@ -5,13 +5,18 @@ from sqlalchemy.engine import Engine
 SQLITE_COLUMN_MIGRATIONS = {
     "stores": {
         "location_text": "ALTER TABLE stores ADD COLUMN location_text VARCHAR(500)",
+        "user_id": "ALTER TABLE stores ADD COLUMN user_id VARCHAR(120)",
     },
     "receipts": {
         "image_path": "ALTER TABLE receipts ADD COLUMN image_path VARCHAR(500)",
+        "user_id": "ALTER TABLE receipts ADD COLUMN user_id VARCHAR(120)",
+        "share_prices_publicly": "ALTER TABLE receipts ADD COLUMN share_prices_publicly BOOLEAN DEFAULT 0 NOT NULL",
     },
     "receipt_items": {
         "unit_price": "ALTER TABLE receipt_items ADD COLUMN unit_price FLOAT",
         "unit_price_unit": "ALTER TABLE receipt_items ADD COLUMN unit_price_unit VARCHAR(40)",
+        "user_id": "ALTER TABLE receipt_items ADD COLUMN user_id VARCHAR(120)",
+        "is_public": "ALTER TABLE receipt_items ADD COLUMN is_public BOOLEAN DEFAULT 0 NOT NULL",
     },
 }
 

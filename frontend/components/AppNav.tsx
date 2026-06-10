@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import { BarChart3, ReceiptText, Search, Upload } from "lucide-react";
+import { BarChart3, LogOut, ReceiptText, Search, Upload, UserRound } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
 
 const links = [
   { href: "/", label: "Home", icon: ReceiptText },
@@ -9,6 +12,8 @@ const links = [
 ];
 
 export function AppNav() {
+  const { user, signOut } = useAuth();
+
   return (
     <header className="app-header">
       <Link className="brand" href="/">
@@ -24,6 +29,17 @@ export function AppNav() {
             </Link>
           );
         })}
+        {user ? (
+          <button className="nav-auth-button" type="button" onClick={signOut}>
+            <LogOut size={18} aria-hidden="true" />
+            <span>Sign out</span>
+          </button>
+        ) : (
+          <Link href="/account">
+            <UserRound size={18} aria-hidden="true" />
+            <span>Account</span>
+          </Link>
+        )}
       </nav>
     </header>
   );

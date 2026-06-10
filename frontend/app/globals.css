@@ -79,7 +79,16 @@ input {
   color: var(--muted);
 }
 
-.nav-links a:hover {
+.nav-auth-button {
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+
+.nav-links a:hover,
+.nav-auth-button:hover {
   background: var(--surface-muted);
   color: var(--text);
 }
@@ -210,6 +219,58 @@ button:disabled {
   width: 100%;
   color: var(--text);
   font-weight: 400;
+}
+
+.auth-form {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-form label,
+.privacy-choice {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.auth-form input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-weight: 400;
+}
+
+.privacy-choice {
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+}
+
+.privacy-choice input {
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+}
+
+.privacy-choice span {
+  display: grid;
+  gap: 4px;
+  color: var(--text);
+}
+
+.privacy-choice small {
+  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.4;
 }
 
 .table-input {
@@ -574,7 +635,8 @@ tr:last-child td {
     padding-bottom: 0;
   }
 
-  .nav-links a {
+  .nav-links a,
+  .nav-auth-button {
     flex: 1;
     display: grid;
     justify-items: center;
@@ -584,7 +646,8 @@ tr:last-child td {
     font-size: 11px;
   }
 
-  .nav-links a span {
+  .nav-links a span,
+  .nav-auth-button span {
     display: block;
   }
 

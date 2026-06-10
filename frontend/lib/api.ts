@@ -1,3 +1,5 @@
+import { supabase } from "@/lib/supabase";
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 export type ReceiptItem = {
@@ -18,12 +20,14 @@ export type ReceiptItem = {
 
 export type Receipt = {
   id: number;
+  user_id: string | null;
   store_id: number;
   store_name: string;
   purchased_at: string | null;
   original_filename: string | null;
   image_path: string | null;
   raw_text: string;
+  share_prices_publicly: boolean;
   created_at: string;
   items: ReceiptItem[];
 };
@@ -80,6 +84,7 @@ export type SaveReceiptRequest = {
   image_path: string | null;
   original_filename: string | null;
   raw_text: string;
+  share_prices_publicly: boolean;
   items: CorrectedReceiptItem[];
 };
 
@@ -169,6 +174,7 @@ export async function previewReceipt(file: File): Promise<ReceiptPreviewResponse
 
   const response = await fetch(`${API_URL}/receipts/upload`, {
     method: "POST",
+    headers: await authHeaders(),
     body,
   });
 
@@ -182,7 +188,7 @@ export async function previewReceipt(file: File): Promise<ReceiptPreviewResponse
 export async function saveReceipt(payload: SaveReceiptRequest): Promise<Receipt> {
   const response = await fetch(`${API_URL}/receipts`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
   });
 
@@ -194,7 +200,10 @@ export async function saveReceipt(payload: SaveReceiptRequest): Promise<Receipt>
 }
 
 export async function fetchReceipts(): Promise<Receipt[]> {
-  const response = await fetch(`${API_URL}/receipts`, { cache: "no-store" });
+  const response = await fetch(`${API_URL}/receipts`, {
+    cache: "no-store",
+    headers: await authHeaders(),
+  });
   if (!response.ok) {
     throw new Error("Unable to load receipts");
   }
@@ -202,7 +211,9 @@ export async function fetchReceipts(): Promise<Receipt[]> {
 }
 
 export async function searchItems(query: string): Promise<SearchResult[]> {
-  const response = await fetch(`${API_URL}/items/search?q=${encodeURIComponent(query)}`);
+  const response = await fetch(`${API_URL}/items/search?q=${encodeURIComponent(query)}`, {
+    headers: await authHeaders(),
+  });
   if (!response.ok) {
     throw new Error("Unable to search items");
   }
@@ -210,7 +221,9 @@ export async function searchItems(query: string): Promise<SearchResult[]> {
 }
 
 export async function searchProducts(query: string): Promise<ProductSearchCandidate[]> {
-  const response = await fetch(`${API_URL}/products/search?q=${encodeURIComponent(query)}`);
+  const response = await fetch(`${API_URL}/products/search?q=${encodeURIComponent(query)}`, {
+    headers: await authHeaders(),
+  });
   if (!response.ok) {
     throw new Error("Unable to search products");
   }
@@ -218,7 +231,9 @@ export async function searchProducts(query: string): Promise<ProductSearchCandid
 }
 
 export async function fetchProductPriceHistory(productId: number): Promise<ProductPriceHistory> {
-  const response = await fetch(`${API_URL}/products/${productId}/price-history`);
+  const response = await fetch(`${API_URL}/products/${productId}/price-history`, {
+    headers: await authHeaders(),
+  });
   if (!response.ok) {
     throw new Error("Unable to load product price history");
   }
@@ -226,11 +241,30 @@ export async function fetchProductPriceHistory(productId: number): Promise<Produ
 }
 
 export async function compareItems(name: string): Promise<CompareResult> {
-  const response = await fetch(`${API_URL}/items/compare?name=${encodeURIComponent(name)}`);
+  const response = await fetch(`${API_URL}/items/compare?name=${encodeURIComponent(name)}`, {
+    headers: await authHeaders(),
+  });
   if (!response.ok) {
     throw new Error("Unable to compare prices");
   }
   return response.json();
+}
+
+async function authHeaders(extraHeaders: HeadersInit = {}): Promise<HeadersInit> {
+  if (!supabase) {
+    throw new Error("Account sign-in is not set up yet.");
+  }
+
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) {
+    throw new Error("Please sign in to continue.");
+  }
+
+  return {
+    ...extraHeaders,
+    Authorization: `Bearer ${token}`,
+  };
 }
 
 export function formatMoney(value: number): string {

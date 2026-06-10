@@ -2,6 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { Search } from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
 import {
   ProductPriceHistory,
   ProductSearchCandidate,
@@ -19,6 +21,7 @@ export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const { user, isLoading } = useAuth();
 
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,6 +70,16 @@ export default function SearchPage() {
         </div>
       </section>
 
+      {!isLoading && !user ? (
+        <section className="panel stack">
+          <p className="muted">Sign in to search saved prices.</p>
+          <Link className="button" href="/account">
+            Go to account
+          </Link>
+        </section>
+      ) : null}
+
+      {user ? (
       <form className="form-row" onSubmit={handleSearch}>
         <input
           aria-label="Product search"
@@ -80,6 +93,7 @@ export default function SearchPage() {
           {isSearching ? "Searching..." : "Search"}
         </button>
       </form>
+      ) : null}
 
       {error ? <p className="error">{error}</p> : null}
 

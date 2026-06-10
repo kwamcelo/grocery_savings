@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -10,15 +10,30 @@ class Store(Base):
     __tablename__ = "stores"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), index=True)
     location_text: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    user: Mapped["User | None"] = relationship("User", back_populates="stores")
     receipts: Mapped[list["Receipt"]] = relationship("Receipt", back_populates="store")
     receipt_items: Mapped[list["ReceiptItem"]] = relationship(
         "ReceiptItem",
         back_populates="store",
     )
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    stores: Mapped[list[Store]] = relationship("Store", back_populates="user")
+    receipts: Mapped[list["Receipt"]] = relationship("Receipt", back_populates="user")
+    receipt_items: Mapped[list["ReceiptItem"]] = relationship("ReceiptItem", back_populates="user")
 
 
 class NormalizedProduct(Base):
@@ -62,13 +77,16 @@ class Receipt(Base):
     __tablename__ = "receipts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     store_id: Mapped[int] = mapped_column(ForeignKey("stores.id"), index=True)
     purchased_at: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
     original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     raw_text: Mapped[str] = mapped_column(Text, default="")
+    share_prices_publicly: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    user: Mapped[User | None] = relationship("User", back_populates="receipts")
     store: Mapped[Store] = relationship("Store", back_populates="receipts")
     items: Mapped[list["ReceiptItem"]] = relationship(
         "ReceiptItem",
@@ -85,6 +103,7 @@ class ReceiptItem(Base):
     __tablename__ = "receipt_items"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     receipt_id: Mapped[int] = mapped_column(ForeignKey("receipts.id"), index=True)
     store_id: Mapped[int] = mapped_column(ForeignKey("stores.id"), index=True)
     normalized_product_id: Mapped[int | None] = mapped_column(
@@ -99,7 +118,9 @@ class ReceiptItem(Base):
     unit_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     unit_price_unit: Mapped[str | None] = mapped_column(String(40), nullable=True)
     purchased_at: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    is_public: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
 
+    user: Mapped[User | None] = relationship("User", back_populates="receipt_items")
     receipt: Mapped[Receipt] = relationship("Receipt", back_populates="items")
     store: Mapped[Store] = relationship("Store", back_populates="receipt_items")
     normalized_product: Mapped[NormalizedProduct | None] = relationship(

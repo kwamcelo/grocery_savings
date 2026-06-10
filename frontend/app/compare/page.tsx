@@ -2,6 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { AlertTriangle, BarChart3 } from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
 import { CompareResult, SearchResult, compareItems, formatMoney } from "@/lib/api";
 
 export default function ComparePage() {
@@ -9,6 +11,7 @@ export default function ComparePage() {
   const [result, setResult] = useState<CompareResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isComparing, setIsComparing] = useState(false);
+  const { user, isLoading } = useAuth();
 
   async function handleCompare(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,6 +46,16 @@ export default function ComparePage() {
         </div>
       </section>
 
+      {!isLoading && !user ? (
+        <section className="panel stack">
+          <p className="muted">Sign in to compare saved prices.</p>
+          <Link className="button" href="/account">
+            Go to account
+          </Link>
+        </section>
+      ) : null}
+
+      {user ? (
       <form className="form-row" onSubmit={handleCompare}>
         <input
           aria-label="Item to compare"
@@ -56,6 +69,7 @@ export default function ComparePage() {
           {isComparing ? "Comparing..." : "Compare"}
         </button>
       </form>
+      ) : null}
 
       {error ? <p className="error">{error}</p> : null}
 

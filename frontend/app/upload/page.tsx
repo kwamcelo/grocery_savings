@@ -2,6 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { Plus, ReceiptText, Save, Trash2, Upload } from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
 import {
   NormalizationSuggestion,
   Receipt,
@@ -30,11 +32,13 @@ export default function UploadPage() {
   const [storeName, setStoreName] = useState("");
   const [storeLocation, setStoreLocation] = useState("");
   const [purchasedAt, setPurchasedAt] = useState("");
+  const [sharePricesPublicly, setSharePricesPublicly] = useState(false);
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [savedReceipt, setSavedReceipt] = useState<Receipt | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user, isLoading } = useAuth();
 
   async function handleUpload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -133,6 +137,7 @@ export default function UploadPage() {
         image_path: preview.image_path,
         original_filename: preview.original_filename,
         raw_text: preview.extracted_text,
+        share_prices_publicly: sharePricesPublicly,
         items: correctedItems,
       });
       setSavedReceipt(receipt);
@@ -183,18 +188,29 @@ export default function UploadPage() {
         </div>
       </section>
 
-      <form className="upload-box" onSubmit={handleUpload}>
-        <input
-          aria-label="Receipt image"
-          accept="image/*,application/pdf,.pdf"
-          type="file"
-          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-        />
-        <button disabled={!file || isUploading} type="submit">
-          <Upload size={18} aria-hidden="true" />
-          {isUploading ? "Reading..." : "Read receipt"}
-        </button>
-      </form>
+      {!isLoading && !user ? (
+        <section className="panel stack">
+          <p className="muted">Sign in before adding receipts.</p>
+          <Link className="button" href="/account">
+            Go to account
+          </Link>
+        </section>
+      ) : null}
+
+      {user ? (
+        <form className="upload-box" onSubmit={handleUpload}>
+          <input
+            aria-label="Receipt image"
+            accept="image/*,application/pdf,.pdf"
+            type="file"
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+          />
+          <button disabled={!file || isUploading} type="submit">
+            <Upload size={18} aria-hidden="true" />
+            {isUploading ? "Reading..." : "Read receipt"}
+          </button>
+        </form>
+      ) : null}
 
       {error ? <p className="error">{error}</p> : null}
 
@@ -230,6 +246,21 @@ export default function UploadPage() {
               />
             </label>
           </div>
+
+          <label className="privacy-choice">
+            <input
+              type="checkbox"
+              checked={sharePricesPublicly}
+              onChange={(event) => setSharePricesPublicly(event.target.checked)}
+            />
+            <span>
+              Share item prices with others
+              <small>
+                Only item prices, store, and date may be shared. Your full receipt
+                and total spending stay private.
+              </small>
+            </span>
+          </label>
 
           <div className="table-wrap">
             <table>

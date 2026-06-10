@@ -7,6 +7,7 @@ class StoreRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    user_id: str | None
     name: str
     location_text: str | None
     created_at: datetime
@@ -35,6 +36,7 @@ class ReceiptItemRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    user_id: str | None
     receipt_id: int
     store_id: int
     normalized_product_id: int | None
@@ -47,18 +49,21 @@ class ReceiptItemRead(BaseModel):
     unit_price_unit: str | None
     price: float
     purchased_at: date | None
+    is_public: bool
 
 
 class ReceiptRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    user_id: str | None
     store_id: int
     store_name: str
     purchased_at: date | None
     original_filename: str | None
     image_path: str | None
     raw_text: str
+    share_prices_publicly: bool
     created_at: datetime
     items: list[ReceiptItemRead] = []
 
@@ -115,6 +120,7 @@ class SaveReceiptRequest(BaseModel):
     image_path: str | None = None
     original_filename: str | None = None
     raw_text: str = ""
+    share_prices_publicly: bool = False
     items: list[CorrectedReceiptItem]
 
 

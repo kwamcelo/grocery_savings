@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.services.parser import ParsedItem, ParsedReceipt
-from app.models import NormalizedProduct, ProductAlias, Receipt, ReceiptItem, Store
+from app.models import NormalizedProduct, ProductAlias, Receipt, ReceiptItem, Store, User
 
 
 def create_product_fixture(db: Session) -> NormalizedProduct:
@@ -37,10 +37,17 @@ def create_purchase(
     unit_price: float | None = None,
     unit_price_unit: str | None = None,
 ) -> None:
-    store = Store(name=store_name)
+    user = db.get(User, "test-user")
+    if not user:
+        user = User(id="test-user", email="test@example.com")
+        db.add(user)
+        db.flush()
+
+    store = Store(name=store_name, user_id=user.id)
     db.add(store)
     db.flush()
     receipt = Receipt(
+        user_id=user.id,
         store_id=store.id,
         purchased_at=purchased_at,
         raw_text=f"{store_name}\n{raw_name} {price}",
@@ -49,6 +56,7 @@ def create_purchase(
     db.flush()
     db.add(
         ReceiptItem(
+            user_id=user.id,
             receipt_id=receipt.id,
             store_id=store.id,
             normalized_product_id=product.id,
@@ -59,6 +67,7 @@ def create_purchase(
             unit_price=unit_price,
             unit_price_unit=unit_price_unit,
             purchased_at=purchased_at,
+            is_public=False,
         )
     )
     db.commit()

@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from .auth import get_current_user
 from .db import Base, engine, get_db
 from .migrations import run_lightweight_migrations
 from .models import (
@@ -16,6 +17,7 @@ from .models import (
     Receipt,
     ReceiptItem,
     Store,
+    User,
 )
 from .schemas import (
     CompareResult,
@@ -75,8 +77,17 @@ def ocr_config() -> dict[str, str | bool | int]:
 
 
 @app.get("/stores", response_model=list[StoreRead])
-def list_stores(db: Session = Depends(get_db)) -> list[Store]:
-    return list(db.scalars(select(Store).order_by(Store.name.asc())))
+def list_stores(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[Store]:
+    return list(
+        db.scalars(
+            select(Store)
+            .where(or_(Store.user_id == current_user.id, Store.user_id.is_(None)))
+            .order_by(Store.name.asc())
+        )
+    )
 
 
 @app.get("/products", response_model=list[NormalizedProductRead])
@@ -91,7 +102,11 @@ def list_products(db: Session = Depends(get_db)) -> list[NormalizedProduct]:
 
 
 @app.get("/products/search", response_model=list[ProductSearchCandidate])
-def search_products(q: str, db: Session = Depends(get_db)) -> list[ProductSearchCandidate]:
+def search_products(
+    q: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[ProductSearchCandidate]:
     query_tokens = query_terms(q)
     if not query_tokens:
         return []
@@ -107,11 +122,15 @@ def search_products(q: str, db: Session = Depends(get_db)) -> list[ProductSearch
         )
     )
 
-    candidates = [
-        to_product_candidate(product)
-        for product in products
-        if product_matches_query(product, query_tokens)
-    ]
+    candidates = []
+    for product in products:
+        visible_items = [
+            item
+            for item in product.receipt_items
+            if item.user_id == current_user.id or item.is_public
+        ]
+        if product_matches_query(product, query_tokens, visible_items):
+            candidates.append(to_product_candidate(product, visible_items))
     return sorted(
         candidates,
         key=lambda candidate: (
@@ -126,6 +145,7 @@ def search_products(q: str, db: Session = Depends(get_db)) -> list[ProductSearch
 def get_product_price_history(
     product_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> ProductPriceHistory:
     product = db.scalar(
         select(NormalizedProduct).where(NormalizedProduct.id == product_id)
@@ -136,7 +156,10 @@ def get_product_price_history(
     rows = db.execute(
         select(ReceiptItem, Store)
         .join(Store, ReceiptItem.store_id == Store.id)
-        .where(ReceiptItem.normalized_product_id == product_id)
+        .where(
+            ReceiptItem.normalized_product_id == product_id,
+            visible_item_filter(current_user),
+        )
     ).all()
 
     groups: dict[int, tuple[Store, list[ReceiptItem]]] = {}
@@ -163,6 +186,7 @@ def get_product_price_history(
 async def upload_receipt(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if file.content_type and not (
         file.content_type.startswith("image/") or file.content_type == "application/pdf"
@@ -192,6 +216,7 @@ async def upload_receipt(
 def save_receipt(
     payload: SaveReceiptRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Receipt:
     if not payload.items:
         raise HTTPException(status_code=400, detail="At least one receipt item is required.")
@@ -199,14 +224,17 @@ def save_receipt(
     store = get_or_create_store(
         db,
         payload.store_name,
+        user_id=current_user.id,
         location_text=payload.store_location_text,
     )
     receipt = Receipt(
+        user_id=current_user.id,
         store_id=store.id,
         purchased_at=payload.purchased_at,
         original_filename=payload.original_filename,
         image_path=payload.image_path,
         raw_text=payload.raw_text,
+        share_prices_publicly=payload.share_prices_publicly,
     )
     db.add(receipt)
     db.flush()
@@ -224,6 +252,7 @@ def save_receipt(
         normalized_product = resolve_normalized_product_for_item(db, item)
         receipt_items.append(
             ReceiptItem(
+                user_id=current_user.id,
                 receipt_id=receipt.id,
                 store_id=store.id,
                 normalized_product_id=normalized_product.id,
@@ -234,6 +263,7 @@ def save_receipt(
                 unit_price=item.unit_price,
                 unit_price_unit=unit_price_unit,
                 purchased_at=payload.purchased_at,
+                is_public=payload.share_prices_publicly,
             )
         )
 
@@ -243,11 +273,14 @@ def save_receipt(
     receipt.items = receipt_items
 
     db.commit()
-    return load_receipt(db, receipt.id)
+    return load_receipt(db, receipt.id, current_user)
 
 
 @app.get("/receipts", response_model=list[ReceiptRead])
-def list_receipts(db: Session = Depends(get_db)) -> list[Receipt]:
+def list_receipts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[Receipt]:
     return list(
         db.scalars(
             select(Receipt)
@@ -255,13 +288,18 @@ def list_receipts(db: Session = Depends(get_db)) -> list[Receipt]:
                 selectinload(Receipt.store),
                 selectinload(Receipt.items).selectinload(ReceiptItem.normalized_product),
             )
+            .where(Receipt.user_id == current_user.id)
             .order_by(Receipt.created_at.desc())
         )
     )
 
 
 @app.get("/items/search", response_model=list[SearchResult])
-def search_items(q: str, db: Session = Depends(get_db)) -> list[SearchResult]:
+def search_items(
+    q: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[SearchResult]:
     product_ids = matching_product_ids(db, q)
     filters = [
         ReceiptItem.raw_item_name.ilike(f"%{q}%"),
@@ -277,14 +315,18 @@ def search_items(q: str, db: Session = Depends(get_db)) -> list[SearchResult]:
             NormalizedProduct,
             ReceiptItem.normalized_product_id == NormalizedProduct.id,
         )
-        .where(or_(*filters))
+        .where(or_(*filters), visible_item_filter(current_user))
         .order_by(ReceiptItem.purchased_at.desc(), ReceiptItem.price.asc())
     ).all()
     return [to_search_result(item, store) for item, store in rows]
 
 
 @app.get("/items/compare", response_model=CompareResult)
-def compare_items(name: str, db: Session = Depends(get_db)) -> CompareResult:
+def compare_items(
+    name: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> CompareResult:
     product_ids = matching_product_ids(db, name)
     filters = [
         ReceiptItem.raw_item_name.ilike(f"%{name}%"),
@@ -300,7 +342,7 @@ def compare_items(name: str, db: Session = Depends(get_db)) -> CompareResult:
             NormalizedProduct,
             ReceiptItem.normalized_product_id == NormalizedProduct.id,
         )
-        .where(or_(*filters))
+        .where(or_(*filters), visible_item_filter(current_user))
     ).all()
 
     search_results = [to_search_result(item, store) for item, store in rows]
@@ -320,7 +362,7 @@ def compare_items(name: str, db: Session = Depends(get_db)) -> CompareResult:
     )
 
 
-def load_receipt(db: Session, receipt_id: int) -> Receipt:
+def load_receipt(db: Session, receipt_id: int, user: User | None = None) -> Receipt:
     receipt = db.scalar(
         select(Receipt)
         .options(
@@ -329,7 +371,7 @@ def load_receipt(db: Session, receipt_id: int) -> Receipt:
         )
         .where(Receipt.id == receipt_id)
     )
-    if not receipt:
+    if not receipt or (user and receipt.user_id != user.id):
         raise HTTPException(status_code=404, detail="Receipt not found")
     return receipt
 
@@ -337,16 +379,22 @@ def load_receipt(db: Session, receipt_id: int) -> Receipt:
 def get_or_create_store(
     db: Session,
     name: str,
+    user_id: str | None = None,
     location_text: str | None = None,
 ) -> Store:
     store_name = " ".join(name.split()).strip() or "Unknown Store"
-    store = db.scalar(select(Store).where(func.lower(Store.name) == store_name.lower()))
+    store = db.scalar(
+        select(Store).where(
+            func.lower(Store.name) == store_name.lower(),
+            Store.user_id == user_id,
+        )
+    )
     if store:
         if location_text and not store.location_text:
             store.location_text = location_text
         return store
 
-    store = Store(name=store_name, location_text=location_text)
+    store = Store(name=store_name, user_id=user_id, location_text=location_text)
     db.add(store)
     db.flush()
     return store
@@ -505,6 +553,10 @@ def normalize_product_name(raw_item_name: str) -> str:
 
 def canonical_alias(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
+
+
+def visible_item_filter(user: User):
+    return or_(ReceiptItem.user_id == user.id, ReceiptItem.is_public.is_(True))
 
 
 def build_store_price_summaries(
@@ -715,8 +767,11 @@ def to_search_result(item: ReceiptItem, store: Store) -> SearchResult:
     )
 
 
-def to_product_candidate(product: NormalizedProduct) -> ProductSearchCandidate:
-    purchases = list(product.receipt_items)
+def to_product_candidate(
+    product: NormalizedProduct,
+    visible_items: list[ReceiptItem],
+) -> ProductSearchCandidate:
+    purchases = visible_items
     sorted_by_recent = sorted(
         purchases,
         key=lambda item: item.purchased_at or date.min,
@@ -769,10 +824,14 @@ def to_store_price_group(store: Store, items: list[ReceiptItem]) -> ProductStore
     )
 
 
-def product_matches_query(product: NormalizedProduct, tokens: list[str]) -> bool:
+def product_matches_query(
+    product: NormalizedProduct,
+    tokens: list[str],
+    visible_items: list[ReceiptItem],
+) -> bool:
     searchable_parts = [product.name]
     searchable_parts.extend(alias.alias for alias in product.aliases)
-    searchable_parts.extend(item.raw_item_name for item in product.receipt_items)
+    searchable_parts.extend(item.raw_item_name for item in visible_items)
     searchable_text = " ".join(canonical_alias(part) for part in searchable_parts)
     searchable_tokens = set(query_terms(searchable_text))
     return all(token in searchable_tokens or token in searchable_text for token in tokens)
